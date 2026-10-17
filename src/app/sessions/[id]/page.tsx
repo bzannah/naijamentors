@@ -5,7 +5,7 @@ import { ArrowLeft, CalendarPlus, LifeBuoy, MessageCircle } from "lucide-react";
 import { AdireLines, SunRings } from "@/components/Patterns";
 import { Portrait } from "@/components/Portrait";
 import { requireUser } from "@/lib/auth";
-import { BRAND } from "@/lib/brand";
+import { safeguardingEmail } from "@/lib/env";
 import { mentorName, sessionById } from "@/lib/queries";
 import { fmtDateLong, fmtTime } from "@/lib/time";
 import { Checklist, Countdown } from "./RoomClient";
@@ -22,7 +22,7 @@ const AGENDA = [
 export default async function SessionRoom({ params }: PageProps<"/sessions/[id]">) {
   const { id } = await params;
   const user = await requireUser(undefined, `/sessions/${id}`);
-  const s = sessionById(user, id);
+  const s = await sessionById(user, id);
   if (!s) notFound();
 
   const name = mentorName(s.mentor);
@@ -136,7 +136,7 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
                 <CalendarPlus className="h-5 w-5 text-gold-2" /> Add to calendar
               </a>
             )}
-            <a href={`mailto:${BRAND.safeguardingEmail}`} className="flex items-center gap-3 rounded-2xl bg-paper/[0.06] p-4 text-[0.9rem] transition hover:bg-paper/10">
+            <a href={`mailto:${safeguardingEmail()}`} className="flex items-center gap-3 rounded-2xl bg-paper/[0.06] p-4 text-[0.9rem] transition hover:bg-paper/10">
               <LifeBuoy className="h-5 w-5 text-gold-2" /> Raise a safeguarding concern
             </a>
             <p className="mt-auto pt-2 text-[0.78rem] leading-relaxed text-paper/50">

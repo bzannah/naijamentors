@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { homeFor, requireUser } from "@/lib/auth";
 import { mentorName, threadFor } from "@/lib/queries";
 import { dateKey, fmtDateLong, fmtDayNum, fmtMonth, fmtRelativeDay, fmtTime, fmtWeekday } from "@/lib/time";
 import { ThreadView, type SessionCardData, type ThreadMessage } from "./ThreadView";
@@ -11,7 +11,8 @@ export default async function ThreadPage({ params, searchParams }: PageProps<"/i
   const { id } = await params;
   const sp = await searchParams;
   const user = await requireUser(undefined, `/inbox/${id}`);
-  const t = threadFor(user, id);
+  if (user.role === "admin") redirect(homeFor(user.role));
+  const t = await threadFor(user, id);
   if (!t) notFound();
 
   const now = Date.now();

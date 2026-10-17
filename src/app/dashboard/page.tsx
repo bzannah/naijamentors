@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowUpRight, BadgeCheck, BookOpen, CalendarClock, Clock, DoorOpen, HeartHandshake, Inbox, Sparkles, Users } from "lucide-react";
 import { MentorCard } from "@/components/MentorCard";
 import { AdirePattern } from "@/components/Patterns";
 import { Avatar, Portrait } from "@/components/Portrait";
 import { ButtonLink } from "@/components/ui/Button";
-import { requireUser, type SafeUser } from "@/lib/auth";
+import { homeFor, requireUser, type SafeUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { toCard } from "@/lib/present";
-import { conversationsFor, listMentors, mentorForUser, mentorName, sessionsFor, type SessionView } from "@/lib/queries";
+import {
+  conversationsFor,
+  listMentors,
+  mentorForUser,
+  mentorName,
+  sessionsFor,
+  type ConversationSummary,
+  type MentorListing,
+  type SessionView,
+} from "@/lib/queries";
 import { fmtAgo, fmtDateLong, fmtDayNum, fmtMonth, fmtRelativeDay, fmtTime, fmtWeekday, greeting } from "@/lib/time";
 import type { Mentor } from "@/lib/types";
 import { AvailabilityEditor } from "./AvailabilityEditor";
@@ -17,14 +27,13 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function Dashboard({ searchParams }: PageProps<"/dashboard">) {
   const user = await requireUser(undefined, "/dashboard");
+  if (user.role === "admin") redirect(homeFor(user.role));
   const sp = await searchParams;
   const now = Date.now();
-  const sessions = sessionsFor(user);
+  const [sessions, convos, mentor, mentors] = await Promise.all([sessionsFor(user), conversationsFor(user), mentorForUser(user), listMentors()]);
   const upcoming = sessions.filter((s) => s.status === "accepted" && new Date(s.start).getTime() + s.durationMin * 60000 > now);
   const pending = sessions.filter((s) => s.status === "pending");
-  const convos = conversationsFor(user);
   const unread = convos.filter((c) => c.unread > 0);
-  const mentor = mentorForUser(user);
   const first = user.role === "mentor" && mentor ? `${mentor.honorific ? mentor.honorific + " " : ""}${mentor.firstName}` : user.name.split(" ")[0];
 
   return (
@@ -61,7 +70,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
         {user.role === "mentor" && mentor ? (
           <MentorBoard mentor={mentor} sessions={sessions} upcoming={upcoming} pending={pending} unreadCount={unread.length} now={now} />
         ) : (
-          <ParentBoard user={user} upcoming={upcoming} pending={pending} convos={convos} now={now} />
+          <ParentBoard user={user} upcoming={upcoming} pending={pending} convos={convos} mentors={mentors} now={now} />
         )}
       </div>
     </div>
@@ -75,16 +84,18 @@ function ParentBoard({
   upcoming,
   pending,
   convos,
+  mentors,
   now,
 }: {
   user: SafeUser;
   upcoming: SessionView[];
   pending: SessionView[];
-  convos: ReturnType<typeof conversationsFor>;
+  convos: ConversationSummary[];
+  mentors: MentorListing[];
   now: number;
 }) {
   const next = upcoming[0];
-  const recommended = listMentors()
+  const recommended = mentors
     .filter((m) => m.status === "active" && !convos.some((c) => c.conversation.mentorId === m.id))
     .sort((a, b) => (a.nextSlot ?? "9").localeCompare(b.nextSlot ?? "9"))
     .slice(0, 3);

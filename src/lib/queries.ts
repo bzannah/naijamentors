@@ -1,72 +1,130 @@
-import { readDb } from "./db";
+import { and, asc, count, desc, eq, gt, inArray, ne, notInArray, sql, type SQL } from "drizzle-orm";
+import { cache } from "react";
+import { getDb, type Database } from "./db";
+import { toConversation, toMentor, toMessage, toSession } from "./db/mappers";
+import { conversations, mentors, messages, sessions, users } from "./db/schema";
 import { upcomingSlots } from "./time";
 import type { SafeUser } from "./auth";
-import type { Conversation, Db, Mentor, Message, Session, User } from "./types";
+import type { Conversation, Mentor, Message, Session, User } from "./types";
 
 export function mentorName(m: Pick<Mentor, "honorific" | "firstName" | "lastName">) {
   return `${m.honorific ? m.honorific + " " : ""}${m.firstName} ${m.lastName}`;
 }
 
-export function bookedStarts(db: Db, mentorId: string) {
-  return new Set(
-    db.sessions
-      .filter((s) => s.mentorId === mentorId && (s.status === "pending" || s.status === "accepted"))
-      .map((s) => s.start),
-  );
+/* ---------------- Availability ---------------- */
+
+const LIVE = ["pending", "accepted"] as const;
+
+/** Upcoming starts that are already requested or confirmed, per mentor. */
+async function bookedStarts(db: Database, mentorIds?: string[]) {
+  const rows = await db
+    .select({ mentorId: sessions.mentorId, start: sessions.start })
+    .from(sessions)
+    .where(
+      and(
+        inArray(sessions.status, [...LIVE]),
+        gt(sessions.start, new Date().toISOString()),
+        mentorIds ? inArray(sessions.mentorId, mentorIds) : undefined,
+      ),
+    );
+  const map = new Map<string, Set<string>>();
+  for (const r of rows) map.set(r.mentorId, (map.get(r.mentorId) ?? new Set()).add(r.start));
+  return map;
 }
 
-export function slotsFor(db: Db, mentor: Mentor, days = 14) {
-  return upcomingSlots(mentor.availability, bookedStarts(db, mentor.id), { days });
+/** Open slots for one mentor, read fresh (used when validating a booking). */
+export async function slotsFor(mentor: Mentor, days = 14) {
+  const booked = await bookedStarts(await getDb(), [mentor.id]);
+  return upcomingSlots(mentor.availability, booked.get(mentor.id) ?? new Set(), { days });
 }
+
+/* ---------------- Mentors ---------------- */
 
 export type MentorListing = Mentor & { nextSlot: string | null; slotCount: number };
 
-export function listMentors(): MentorListing[] {
-  const db = readDb();
-  return db.mentors.map((m) => {
-    const slots = slotsFor(db, m);
+export const listMentors = cache(async (): Promise<MentorListing[]> => {
+  const db = await getDb();
+  const [rows, booked] = await Promise.all([db.select().from(mentors).orderBy(asc(mentors.seq)), bookedStarts(db)]);
+  return rows.map((row) => {
+    const m = toMentor(row);
+    const slots = upcomingSlots(m.availability, booked.get(m.id) ?? new Set(), { days: 14 });
     return { ...m, nextSlot: slots[0]?.start ?? null, slotCount: slots.length };
   });
+});
+
+export const getMentorBySlug = cache(async (slug: string) => {
+  const db = await getDb();
+  const [row] = await db.select().from(mentors).where(eq(mentors.slug, slug)).limit(1);
+  if (!row) return null;
+  const mentor = toMentor(row);
+  return { mentor, slots: await slotsFor(mentor, 20) };
+});
+
+export async function getMentorById(id: string) {
+  const [row] = await (await getDb()).select().from(mentors).where(eq(mentors.id, id)).limit(1);
+  return row ? toMentor(row) : null;
 }
 
-export function getMentorBySlug(slug: string) {
-  const db = readDb();
-  const mentor = db.mentors.find((m) => m.slug === slug);
-  if (!mentor) return null;
-  return { mentor, slots: slotsFor(db, mentor, 20) };
+export const mentorForUser = cache(async (user: Pick<SafeUser, "id" | "role">) => {
+  if (user.role !== "mentor") return null;
+  const [row] = await (await getDb()).select().from(mentors).where(eq(mentors.userId, user.id)).limit(1);
+  return row ? toMentor(row) : null;
+});
+
+/* ---------------- Access ---------------- */
+
+/** SQL condition: conversations this user is a party to. Admins aren't party to any. */
+function accessible(db: Database, user: Pick<SafeUser, "id" | "role">): SQL {
+  if (user.role === "parent") return eq(conversations.parentId, user.id);
+  if (user.role === "mentor")
+    return inArray(conversations.mentorId, db.select({ id: mentors.id }).from(mentors).where(eq(mentors.userId, user.id)));
+  return sql`false`;
 }
 
-export function getMentorById(id: string) {
-  return readDb().mentors.find((m) => m.id === id) ?? null;
+/** Load a conversation if the user may see it. */
+export async function accessibleConversation(user: Pick<SafeUser, "id" | "role">, id: string): Promise<Conversation | null> {
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.id, id), accessible(db, user)))
+    .limit(1);
+  return row ? toConversation(row) : null;
 }
 
-function userById(db: Db, id: string): User | undefined {
-  return db.users.find((u) => u.id === id);
+/** The thread between a parent and a mentor, if one exists. */
+export async function conversationBetween(parentId: string, mentorId: string): Promise<Conversation | null> {
+  const [row] = await (await getDb())
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.parentId, parentId), eq(conversations.mentorId, mentorId)))
+    .orderBy(asc(conversations.createdAt))
+    .limit(1);
+  return row ? toConversation(row) : null;
 }
 
-export function canAccess(user: SafeUser, c: Conversation, db: Db) {
-  if (user.role === "parent") return c.parentId === user.id;
-  const mentor = db.mentors.find((m) => m.id === c.mentorId);
-  return mentor?.userId === user.id;
-}
-
-function unreadFor(user: SafeUser, c: Conversation, msgs: Message[]) {
-  const since = user.role === "parent" ? c.lastRead.parent : c.lastRead.mentor;
-  return msgs.filter((m) => m.createdAt > since && m.senderId !== user.id && m.kind !== "system").length;
-}
+/* ---------------- Inbox ---------------- */
 
 export type Counterpart = { name: string; photo?: string; subtitle: string; href?: string };
 
-function counterpart(db: Db, user: SafeUser, c: Conversation): Counterpart {
-  if (user.role === "parent") {
-    const m = db.mentors.find((x) => x.id === c.mentorId)!;
-    return { name: mentorName(m), photo: m.photo, subtitle: m.role, href: `/mentors/${m.slug}` };
-  }
-  const p = userById(db, c.parentId);
+function counterpart(user: SafeUser, c: Conversation, m: Mentor, parentName: string | null): Counterpart {
+  if (user.role === "parent") return { name: mentorName(m), photo: m.photo, subtitle: m.role, href: `/mentors/${m.slug}` };
   return {
-    name: p?.name ?? "Parent",
+    name: parentName ?? "Parent",
     subtitle: `Parent of ${c.menteeName}, ${c.menteeAge} · ${c.schoolYear}`,
   };
+}
+
+/** Messages the user hasn't read yet, per conversation. Their own messages and status updates don't count. */
+async function unreadCounts(db: Database, user: SafeUser, where: SQL) {
+  const lastRead = user.role === "parent" ? conversations.lastReadParent : conversations.lastReadMentor;
+  const rows = await db
+    .select({ id: messages.conversationId, n: count() })
+    .from(messages)
+    .innerJoin(conversations, eq(conversations.id, messages.conversationId))
+    .where(and(where, gt(messages.createdAt, lastRead), ne(messages.senderId, user.id), ne(messages.kind, "system")))
+    .groupBy(messages.conversationId);
+  return new Map(rows.map((r) => [r.id, r.n]));
 }
 
 export type ConversationSummary = {
@@ -77,30 +135,53 @@ export type ConversationSummary = {
   session?: Session;
 };
 
-export function conversationsFor(user: SafeUser): ConversationSummary[] {
-  const db = readDb();
-  return db.conversations
-    .filter((c) => canAccess(user, c, db))
-    .map((c) => {
-      const msgs = db.messages.filter((m) => m.conversationId === c.id);
-      const sessions = db.sessions.filter((s) => s.conversationId === c.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      return {
-        conversation: c,
-        other: counterpart(db, user, c),
-        last: msgs.at(-1),
-        unread: unreadFor(user, c, msgs),
-        session: sessions[0],
-      };
-    })
-    .sort((a, b) => b.conversation.updatedAt.localeCompare(a.conversation.updatedAt));
-}
+export const conversationsFor = cache(async (user: SafeUser): Promise<ConversationSummary[]> => {
+  const db = await getDb();
+  const rows = await db
+    .select({ c: conversations, m: mentors, parentName: users.name })
+    .from(conversations)
+    .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
+    .leftJoin(users, eq(users.id, conversations.parentId))
+    .where(accessible(db, user))
+    .orderBy(desc(conversations.updatedAt));
+  if (!rows.length) return [];
 
-export function unreadTotal(user: SafeUser) {
-  const db = readDb();
-  return db.conversations
-    .filter((c) => canAccess(user, c, db))
-    .reduce((n, c) => n + unreadFor(user, c, db.messages.filter((m) => m.conversationId === c.id)), 0);
-}
+  const ids = rows.map((r) => r.c.id);
+  const [lasts, unread, latest] = await Promise.all([
+    db
+      .selectDistinctOn([messages.conversationId])
+      .from(messages)
+      .where(inArray(messages.conversationId, ids))
+      .orderBy(messages.conversationId, desc(messages.seq)),
+    unreadCounts(db, user, inArray(conversations.id, ids)),
+    db
+      .selectDistinctOn([sessions.conversationId])
+      .from(sessions)
+      .where(inArray(sessions.conversationId, ids))
+      .orderBy(sessions.conversationId, desc(sessions.createdAt)),
+  ]);
+  const lastBy = new Map(lasts.map((m) => [m.conversationId, toMessage(m)]));
+  const sessionBy = new Map(latest.map((s) => [s.conversationId, toSession(s)]));
+
+  return rows.map(({ c: row, m, parentName }) => {
+    const conversation = toConversation(row);
+    return {
+      conversation,
+      other: counterpart(user, conversation, toMentor(m), parentName),
+      last: lastBy.get(row.id),
+      unread: unread.get(row.id) ?? 0,
+      session: sessionBy.get(row.id),
+    };
+  });
+});
+
+export const unreadTotal = cache(async (user: SafeUser) => {
+  if (user.role === "admin") return 0;
+  const db = await getDb();
+  let total = 0;
+  for (const n of (await unreadCounts(db, user, accessible(db, user))).values()) total += n;
+  return total;
+});
 
 export type Thread = {
   conversation: Conversation;
@@ -112,52 +193,89 @@ export type Thread = {
   names: Record<string, string>;
 };
 
-export function threadFor(user: SafeUser, id: string): Thread | null {
-  const db = readDb();
-  const c = db.conversations.find((x) => x.id === id);
-  if (!c || !canAccess(user, c, db)) return null;
-  const mentor = db.mentors.find((m) => m.id === c.mentorId)!;
-  const parent = userById(db, c.parentId)!;
-  const sessions = Object.fromEntries(db.sessions.filter((s) => s.conversationId === c.id).map((s) => [s.id, s]));
+export async function threadFor(user: SafeUser, id: string): Promise<Thread | null> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ c: conversations, m: mentors, p: { id: users.id, name: users.name, city: users.city } })
+    .from(conversations)
+    .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
+    .innerJoin(users, eq(users.id, conversations.parentId))
+    .where(and(eq(conversations.id, id), accessible(db, user)))
+    .limit(1);
+  if (!row) return null;
+
+  const [msgs, sess] = await Promise.all([
+    db.select().from(messages).where(eq(messages.conversationId, id)).orderBy(asc(messages.seq)),
+    db.select().from(sessions).where(eq(sessions.conversationId, id)),
+  ]);
+  const conversation = toConversation(row.c);
+  const mentor = toMentor(row.m);
+  const parent = { id: row.p.id, name: row.p.name, city: row.p.city ?? undefined };
   return {
-    conversation: c,
+    conversation,
     mentor,
-    parent: { id: parent.id, name: parent.name, city: parent.city },
-    messages: db.messages.filter((m) => m.conversationId === c.id),
-    sessions,
-    other: counterpart(db, user, c),
+    parent,
+    messages: msgs.map(toMessage),
+    sessions: Object.fromEntries(sess.map((s) => [s.id, toSession(s)])),
+    other: counterpart(user, conversation, mentor, parent.name),
     names: { [parent.id]: parent.name, [mentor.userId]: mentorName(mentor) },
   };
 }
 
+/* ---------------- Sessions ---------------- */
+
 export type SessionView = Session & { mentor: Mentor; parentName: string; menteeName: string; menteeAge: number; schoolYear: string };
 
-export function sessionsFor(user: SafeUser): SessionView[] {
-  const db = readDb();
-  const mine = db.sessions.filter((s) => {
-    const c = db.conversations.find((x) => x.id === s.conversationId);
-    return c && canAccess(user, c, db);
-  });
-  return mine
-    .map((s) => {
-      const c = db.conversations.find((x) => x.id === s.conversationId)!;
-      return {
-        ...s,
-        mentor: db.mentors.find((m) => m.id === s.mentorId)!,
-        parentName: userById(db, s.parentId)?.name ?? "Parent",
-        menteeName: c.menteeName,
-        menteeAge: c.menteeAge,
-        schoolYear: c.schoolYear,
-      };
+async function sessionViews(user: SafeUser, extra?: SQL): Promise<SessionView[]> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      s: sessions,
+      m: mentors,
+      parentName: users.name,
+      menteeName: conversations.menteeName,
+      menteeAge: conversations.menteeAge,
+      schoolYear: conversations.schoolYear,
     })
-    .sort((a, b) => a.start.localeCompare(b.start));
+    .from(sessions)
+    .innerJoin(conversations, eq(conversations.id, sessions.conversationId))
+    .innerJoin(mentors, eq(mentors.id, sessions.mentorId))
+    .leftJoin(users, eq(users.id, sessions.parentId))
+    .where(and(accessible(db, user), extra))
+    .orderBy(asc(sessions.start));
+  return rows.map(({ s, m, parentName, ...c }) => ({ ...toSession(s), mentor: toMentor(m), parentName: parentName ?? "Parent", ...c }));
 }
 
-export function sessionById(user: SafeUser, id: string): SessionView | null {
-  return sessionsFor(user).find((s) => s.id === id) ?? null;
+export const sessionsFor = cache((user: SafeUser) => sessionViews(user));
+
+export async function sessionById(user: SafeUser, id: string): Promise<SessionView | null> {
+  return (await sessionViews(user, eq(sessions.id, id)))[0] ?? null;
 }
 
-export function mentorForUser(user: SafeUser) {
-  if (user.role !== "mentor" || !user.mentorId) return null;
-  return getMentorById(user.mentorId);
+/** Start time of any session. The landing page uses the demo session to show a real countdown. */
+export async function sessionStart(id: string) {
+  const [row] = await (await getDb()).select({ start: sessions.start }).from(sessions).where(eq(sessions.id, id)).limit(1);
+  return row?.start;
+}
+
+/* ---------------- Admin ---------------- */
+
+export type MentorReview = Mentor & { email: string; sessionCount: number };
+
+/** Every mentor with their sign-in email and how many live or past sessions they hold. Pending first. */
+export async function mentorsForReview(): Promise<MentorReview[]> {
+  const db = await getDb();
+  const sessionCount = db
+    .select({ mentorId: sessions.mentorId, n: count().as("n") })
+    .from(sessions)
+    .where(notInArray(sessions.status, ["declined", "cancelled"]))
+    .groupBy(sessions.mentorId)
+    .as("sc");
+  const rows = await db
+    .select({ m: mentors, email: users.email, n: sessionCount.n })
+    .from(mentors)
+    .innerJoin(users, eq(users.id, mentors.userId))
+    .leftJoin(sessionCount, eq(sessionCount.mentorId, mentors.id))
+    .orderBy(sql`${mentors.status} = 'pending' desc`, desc(mentors.joined));
+  return rows.map(({ m, email, n }) => ({ ...toMentor(m), email, sessionCount: Number(n ?? 0) }));
 }

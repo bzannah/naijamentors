@@ -1,4 +1,8 @@
-import { SEED_MENTORS } from "@/data/mentors";
+import { count, sql } from "drizzle-orm";
+import { SEED_MENTORS } from "../data/mentors";
+import type { Database } from "./db";
+import { fromConversation, fromMentor, fromMessage, fromSession, fromUser } from "./db/mappers";
+import { conversations, mentors as mentorsTable, messages as messagesTable, sessions as sessionsTable, users } from "./db/schema";
 import { hashPassword } from "./password";
 import { upcomingSlots } from "./time";
 import type { Conversation, Db, Message, Mentor, Session, User } from "./types";
@@ -6,6 +10,7 @@ import type { Conversation, Db, Message, Mentor, Session, User } from "./types";
 export const DEMO_PASSWORD = "village-demo";
 export const DEMO_PARENT_EMAIL = "funmi@village.demo";
 export const DEMO_MENTOR_EMAIL = "chiamaka@mentor.village.demo";
+export const DEMO_ADMIN_EMAIL = "admin@village.demo";
 
 export function mentorEmail(m: Pick<Mentor, "firstName">) {
   return `${m.firstName.toLowerCase()}@mentor.village.demo`;
@@ -59,7 +64,18 @@ export function buildSeed(now = Date.now()): Db {
     },
   ];
 
-  const mentors = SEED_MENTORS.map((m) => ({ ...m }));
+  const admins: User[] = [
+    {
+      id: "u_admin",
+      role: "admin",
+      name: "Village Team",
+      email: DEMO_ADMIN_EMAIL,
+      passwordHash: pw,
+      createdAt: iso(-90 * D),
+    },
+  ];
+
+  const mentors = SEED_MENTORS.map((m) => ({ ...m, approvedAt: m.joined }));
   const mentorUsers: User[] = mentors.map((m) => ({
     id: m.userId,
     role: "mentor",
@@ -274,10 +290,34 @@ export function buildSeed(now = Date.now()): Db {
 
   return {
     version: 1,
-    users: [...parents, ...mentorUsers],
+    users: [...admins, ...parents, ...mentorUsers],
     mentors,
     conversations,
     messages,
     sessions,
   };
+}
+
+/**
+ * Write the demo data into Postgres.
+ * - `reset`: wipe every table first (used by `npm run db:reset`).
+ * - `onlyIfEmpty`: do nothing if there are already users (used when the embedded dev database first opens).
+ */
+export async function seedDatabase(db: Database, { reset = false, onlyIfEmpty = false } = {}) {
+  return db.transaction(async (tx) => {
+    if (reset) {
+      await tx.execute(sql`truncate table ${messagesTable}, ${sessionsTable}, ${conversations}, ${mentorsTable}, ${users} restart identity cascade`);
+    } else if (onlyIfEmpty) {
+      const [{ n }] = await tx.select({ n: count() }).from(users);
+      if (n > 0) return false;
+    }
+    const seed = buildSeed();
+    await tx.insert(users).values(seed.users.map(fromUser));
+    await tx.insert(mentorsTable).values(seed.mentors.map(fromMentor));
+    await tx.insert(conversations).values(seed.conversations.map(fromConversation));
+    await tx.insert(sessionsTable).values(seed.sessions.map(fromSession));
+    // One by one so the identity column keeps the conversation order.
+    for (const m of seed.messages) await tx.insert(messagesTable).values(fromMessage(m));
+    return true;
+  });
 }

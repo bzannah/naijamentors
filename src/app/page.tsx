@@ -9,8 +9,7 @@ import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { FIELDS } from "@/lib/fields";
 import { toCard } from "@/lib/present";
-import { readDb } from "@/lib/db";
-import { listMentors, type MentorListing } from "@/lib/queries";
+import { listMentors, sessionStart, type MentorListing } from "@/lib/queries";
 
 const PROFESSIONS = [
   "Paediatricians",
@@ -31,8 +30,9 @@ const PROFESSIONS = [
   "Research fellows",
 ];
 
-export default function Home() {
-  const mentors = listMentors().filter((m) => m.status === "active");
+export default async function Home() {
+  const [all, demoSessionAt] = await Promise.all([listMentors(), sessionStart("s_tobi_1")]);
+  const mentors = all.filter((m) => m.status === "active");
   const by = (slug: string) => mentors.find((m) => m.slug === slug)!;
 
   const stats = {
@@ -51,7 +51,7 @@ export default function Home() {
         right={by("kemi-oyelaran")}
         faces={["tunde-adebayo", "zainab-yusuf", "ifeanyi-okafor", "adaeze-nwosu", "abubakar-sani"].map(by)}
         stats={stats}
-        sessionAt={readDb().sessions.find((s) => s.id === "s_tobi_1")?.start}
+        sessionAt={demoSessionAt}
       />
 
       <Marquee />

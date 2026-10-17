@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LayoutDashboard, LogOut, Menu, MessageCircle, UserRound, X } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Menu, MessageCircle, ShieldCheck, UserRound, X } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { cn } from "@/lib/cn";
 import { Logo } from "./Logo";
@@ -11,7 +11,7 @@ import { Avatar } from "./Portrait";
 import { ButtonLink } from "./ui/Button";
 import { AsoOke } from "./Patterns";
 
-type HeaderUser = { name: string; role: "parent" | "mentor"; photo?: string; profileHref?: string } | null;
+type HeaderUser = { name: string; role: "parent" | "mentor" | "admin"; photo?: string; profileHref?: string } | null;
 
 const NAV = [
   { href: "/mentors", label: "Find a mentor" },
@@ -89,21 +89,23 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
           <div className="flex items-center gap-2">
             {user ? (
               <>
-                <Link
-                  href="/inbox"
-                  aria-label={`Inbox${unread ? `, ${unread} unread` : ""}`}
-                  className={cn(
-                    "relative flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition hover:bg-ink/5 hover:text-ink",
-                    pathname.startsWith("/inbox") && "bg-ink/5 text-ink",
-                  )}
-                >
-                  <MessageCircle className="h-[21px] w-[21px]" strokeWidth={1.8} />
-                  {unread > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-clay px-1 text-[0.65rem] font-bold text-paper ring-2 ring-paper animate-pop">
-                      {unread}
-                    </span>
-                  )}
-                </Link>
+                {user.role !== "admin" && (
+                  <Link
+                    href="/inbox"
+                    aria-label={`Inbox${unread ? `, ${unread} unread` : ""}`}
+                    className={cn(
+                      "relative flex h-11 w-11 items-center justify-center rounded-full text-ink-2 transition hover:bg-ink/5 hover:text-ink",
+                      pathname.startsWith("/inbox") && "bg-ink/5 text-ink",
+                    )}
+                  >
+                    <MessageCircle className="h-[21px] w-[21px]" strokeWidth={1.8} />
+                    {unread > 0 && (
+                      <span className="absolute top-1.5 right-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-clay px-1 text-[0.65rem] font-bold text-paper ring-2 ring-paper animate-pop">
+                        {unread}
+                      </span>
+                    )}
+                  </Link>
+                )}
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setMenu((v) => !v)}
@@ -121,13 +123,19 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
                     >
                       <div className="border-b border-line px-4 py-3.5">
                         <p className="truncate text-[0.95rem] font-semibold">{user.name}</p>
-                        <p className="text-[0.8rem] text-ink-3">{user.role === "mentor" ? "Mentor account" : "Parent account"}</p>
+                        <p className="text-[0.8rem] text-ink-3">{user.role === "admin" ? "Village team" : user.role === "mentor" ? "Mentor account" : "Parent account"}</p>
                       </div>
                       <div className="p-1.5">
-                        <MenuLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>Dashboard</MenuLink>
-                        <MenuLink href="/inbox" icon={<MessageCircle className="h-4 w-4" />}>
-                          Messages {unread > 0 && <span className="ml-auto rounded-full bg-clay-soft px-2 text-xs font-bold text-clay">{unread}</span>}
-                        </MenuLink>
+                        {user.role === "admin" ? (
+                          <MenuLink href="/admin" icon={<ShieldCheck className="h-4 w-4" />}>Mentor verification</MenuLink>
+                        ) : (
+                          <>
+                            <MenuLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />}>Dashboard</MenuLink>
+                            <MenuLink href="/inbox" icon={<MessageCircle className="h-4 w-4" />}>
+                              Messages {unread > 0 && <span className="ml-auto rounded-full bg-clay-soft px-2 text-xs font-bold text-clay">{unread}</span>}
+                            </MenuLink>
+                          </>
+                        )}
                         {user.profileHref && (
                           <MenuLink href={user.profileHref} icon={<UserRound className="h-4 w-4" />}>My public profile</MenuLink>
                         )}
@@ -180,8 +188,8 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
           </nav>
           <div className="flex gap-3 px-6 pb-10">
             {user ? (
-              <ButtonLink href="/dashboard" className="flex-1" size="lg">
-                Dashboard
+              <ButtonLink href={user.role === "admin" ? "/admin" : "/dashboard"} className="flex-1" size="lg">
+                {user.role === "admin" ? "Admin" : "Dashboard"}
               </ButtonLink>
             ) : (
               <>

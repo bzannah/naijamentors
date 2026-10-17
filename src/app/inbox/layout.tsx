@@ -1,11 +1,14 @@
-import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { homeFor, requireUser } from "@/lib/auth";
 import { conversationsFor } from "@/lib/queries";
 import { fmtAgo } from "@/lib/time";
 import { ConversationList, type ListItem } from "./ConversationList";
 
 export default async function InboxLayout({ children }: LayoutProps<"/inbox">) {
   const user = await requireUser(undefined, "/inbox");
-  const items: ListItem[] = conversationsFor(user).map(({ conversation: c, other, last, unread, session }) => ({
+  // The inbox is between families and mentors. Admins work from /admin.
+  if (user.role === "admin") redirect(homeFor(user.role));
+  const items: ListItem[] = (await conversationsFor(user)).map(({ conversation: c, other, last, unread, session }) => ({
     id: c.id,
     name: other.name,
     photo: other.photo,

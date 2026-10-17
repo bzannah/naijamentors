@@ -11,7 +11,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/sessions/[id
   const { id } = await ctx.params;
   const user = await getCurrentUser();
   if (!user) return new Response("Please sign in", { status: 401 });
-  const s = sessionById(user, id);
+  const s = await sessionById(user, id);
   if (!s || s.status !== "accepted") return new Response("Not found", { status: 404 });
 
   const start = new Date(s.start);

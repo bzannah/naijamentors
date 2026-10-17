@@ -7,12 +7,12 @@ import { demoSignIn, requestSession, type FormState } from "@/app/actions";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { fmtDateLong, fmtDayNum, fmtMonth, fmtTime, fmtWeekday, type Slot } from "@/lib/time";
-import type { Child } from "@/lib/types";
+import type { Child, Role } from "@/lib/types";
 
 type Props = {
   mentor: { id: string; slug: string; firstName: string; displayName: string; sessionLength: number; specialities: string[] };
   slots: Slot[];
-  viewer: { role: "parent" | "mentor"; children: Child[] } | null;
+  viewer: { role: Role; children: Child[] } | null;
   initialSlot?: string;
 };
 
@@ -119,14 +119,16 @@ export function BookingPanel({ mentor, slots, viewer, initialSlot }: Props) {
 
           <button
             type="button"
-            disabled={!start || viewer?.role === "mentor"}
+            disabled={!start || (viewer != null && viewer.role !== "parent")}
             onClick={() => setStep("details")}
             className={buttonClasses({ size: "lg", className: "mt-5 w-full" })}
           >
             {start ? "Continue" : "Pick a time to continue"}
           </button>
-          {viewer?.role === "mentor" && (
-            <p className="mt-3 text-center text-[0.82rem] text-ink-3">You&rsquo;re signed in as a mentor. Parents request sessions here.</p>
+          {viewer && viewer.role !== "parent" && (
+            <p className="mt-3 text-center text-[0.82rem] text-ink-3">
+              You&rsquo;re signed in as {viewer.role === "admin" ? "an admin" : "a mentor"}. Parents request sessions here.
+            </p>
           )}
         </div>
       ) : !viewer || state?.error === "signin" ? (

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function MentorsPage({ searchParams }: PageProps<"/mentors">) {
   const sp = await searchParams;
   const user = await getCurrentUser();
-  const mentors = listMentors();
+  const mentors = await listMentors();
 
   const entries: DirectoryEntry[] = mentors.map((m) => ({
     card: toCard(m),

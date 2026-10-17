@@ -4,7 +4,7 @@ import { HeaderClient } from "./HeaderClient";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
-  const mentor = user ? mentorForUser(user) : null;
+  const [mentor, unread] = user ? await Promise.all([mentorForUser(user), unreadTotal(user)]) : [null, 0];
   return (
     <HeaderClient
       user={
@@ -17,7 +17,7 @@ export async function SiteHeader() {
             }
           : null
       }
-      unread={user ? unreadTotal(user) : 0}
+      unread={unread}
     />
   );
 }

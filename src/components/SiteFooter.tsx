@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { safeguardingEmail } from "@/lib/env";
 import { LogoMark } from "./Logo";
 import { AdireLines, AsoOke } from "./Patterns";
 
-const COLS = [
+const cols = () => [
   {
     title: "Families",
     links: [
@@ -28,7 +29,7 @@ const COLS = [
       { href: "/guide#safeguarding", label: "Safeguarding" },
       { href: "/guide#boundaries", label: "Boundaries" },
       { href: "/guide#pledge", label: "The Village pledge" },
-      { href: `mailto:${BRAND.safeguardingEmail}`, label: "Report a concern" },
+      { href: `mailto:${safeguardingEmail()}`, label: "Report a concern" },
     ],
   },
 ];
@@ -53,7 +54,7 @@ export function SiteFooter() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
-            {COLS.map((col) => (
+            {cols().map((col) => (
               <div key={col.title}>
                 <p className="eyebrow text-gold-2">{col.title}</p>
                 <ul className="mt-5 space-y-3">

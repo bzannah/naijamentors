@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   description: "Give 45 minutes a month to a British-Nigerian teenager who needs to see what's possible.",
 };
 
-export default function BecomeAMentor() {
-  const mentors = listMentors();
+export default async function BecomeAMentor() {
+  const mentors = await listMentors();
   const by = (slug: string) => mentors.find((m) => m.slug === slug)!;
   const emeka = by("chukwuemeka-nnamdi");
   const trio = [by("ebiere-tamuno"), emeka, by("aisha-bello")];

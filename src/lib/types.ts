@@ -1,4 +1,4 @@
-export type Role = "parent" | "mentor";
+export type Role = "parent" | "mentor" | "admin";
 
 /** A recurring weekly slot in UK time. day: 0 = Sunday … 6 = Saturday. */
 export type WeeklySlot = { day: number; time: string };
@@ -45,6 +45,8 @@ export type Mentor = {
   replies: string;
   joined: string;
   status: "active" | "pending";
+  /** When an admin approved the mentor. */
+  approvedAt?: string;
 };
 
 export type Child = { name: string; age: number; schoolYear: string };

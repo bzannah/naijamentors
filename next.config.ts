@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     loader: "custom",
     loaderFile: "./src/lib/image-loader.ts",
   },
+  // The embedded development database loads its own WebAssembly build of Postgres at runtime.
+  serverExternalPackages: ["@electric-sql/pglite"],
   experimental: {
     // Mentor applications can include a profile photo.
     serverActions: { bodySizeLimit: "6mb" },

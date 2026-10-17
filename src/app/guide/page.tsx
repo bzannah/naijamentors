@@ -3,7 +3,7 @@ import { AlertTriangle, Check, Ear, Hourglass, Lightbulb, Phone, ShieldCheck, Sp
 import { AdireLines, AdirePattern, AsoOke } from "@/components/Patterns";
 import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
-import { BRAND } from "@/lib/brand";
+import { safeguardingEmail } from "@/lib/env";
 import { GuideNav, type GuideSection } from "./GuideNav";
 
 export const metadata: Metadata = {
@@ -333,7 +333,7 @@ export default function GuidePage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <Helpline icon={AlertTriangle} label="Immediate danger" value="999" />
               <Helpline icon={Phone} label="Childline (for young people)" value="0800 1111" />
-              <Helpline icon={ShieldCheck} label="Village safeguarding lead" value={BRAND.safeguardingEmail} small />
+              <Helpline icon={ShieldCheck} label="Village safeguarding lead" value={safeguardingEmail()} small />
             </div>
           </Section>
 

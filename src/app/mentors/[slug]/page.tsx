@@ -7,16 +7,15 @@ import { AdirePattern } from "@/components/Patterns";
 import { Portrait } from "@/components/Portrait";
 import { Reveal } from "@/components/Reveal";
 import { getCurrentUser } from "@/lib/auth";
-import { readDb } from "@/lib/db";
 import { FIELD_MAP } from "@/lib/fields";
 import { fmtNext, toCard } from "@/lib/present";
-import { getMentorBySlug, listMentors, mentorName } from "@/lib/queries";
+import { conversationBetween, getMentorBySlug, listMentors, mentorName } from "@/lib/queries";
 import { Arrow, buttonClasses } from "@/components/ui/Button";
 import { BookingPanel } from "./BookingPanel";
 
 export async function generateMetadata({ params }: PageProps<"/mentors/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const found = getMentorBySlug(slug);
+  const found = await getMentorBySlug(slug);
   if (!found) return { title: "Mentor not found" };
   const m = found.mentor;
   return { title: `${mentorName(m)}, ${m.role}`, description: m.headline };
@@ -25,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/mentors/[slug]">)
 export default async function MentorPage({ params, searchParams }: PageProps<"/mentors/[slug]">) {
   const { slug } = await params;
   const sp = await searchParams;
-  const found = getMentorBySlug(slug);
+  const found = await getMentorBySlug(slug);
   if (!found) notFound();
   const { mentor: m, slots } = found;
   const user = await getCurrentUser();
@@ -33,13 +32,13 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
   const field = FIELD_MAP[m.field];
   const isOwner = user?.id === m.userId;
 
-  const similar = listMentors()
+  const similar = (await listMentors())
     .filter((x) => x.id !== m.id && x.status === "active")
     .sort((a, b) => Number(b.field === m.field) - Number(a.field === m.field) || Number(b.region === m.region) - Number(a.region === m.region))
     .slice(0, 4);
 
   const existing =
-    user?.role === "parent" ? readDb().conversations.find((c) => c.parentId === user.id && c.mentorId === m.id) : undefined;
+    user?.role === "parent" ? await conversationBetween(user.id, m.id) : null;
 
   const verified = [
     { on: m.verified.dbs, icon: ShieldCheck, label: "Enhanced DBS check" },
