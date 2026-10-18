@@ -22,4 +22,4 @@ export const FIELDS: Field[] = [
 
 export const FIELD_MAP = Object.fromEntries(FIELDS.map((f) => [f.key, f])) as Record<FieldKey, Field>;
 
-export const AGE_GROUPS = ["11–13", "14–16", "17–18"];
+export const AGE_GROUPS = ["11–13", "14–16", "17–18", "19–24", "25–30"];

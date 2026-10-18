@@ -40,6 +40,92 @@ export function AdireLines({ className }: { className?: string }) {
   );
 }
 
+/*
+  The village line: the logo's line, continued. Each figure is a stem with a head; the line climbs each
+  person and reaches down to the next, so a mentor and a young person become a whole village.
+  Shorter figures are the young people, with gold heads, exactly as in the mark.
+*/
+const VILLAGE = [1, 0.64, 0.86, 0.52, 0.95, 0.7, 0.58, 0.9, 0.66, 1, 0.55, 0.82, 0.93, 0.6, 0.76];
+
+type Pt = [number, number];
+
+/** A polyline with circular fillets of radius r at every interior corner. */
+function filletPath(pts: Pt[], r: number) {
+  const f = (n: number) => Math.round(n * 100) / 100;
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [p0, p1, p2] = [pts[i - 1], pts[i], pts[i + 1]];
+    const v1 = [p0[0] - p1[0], p0[1] - p1[1]];
+    const v2 = [p2[0] - p1[0], p2[1] - p1[1]];
+    const l1 = Math.hypot(v1[0], v1[1]);
+    const l2 = Math.hypot(v2[0], v2[1]);
+    const u1 = [v1[0] / l1, v1[1] / l1];
+    const u2 = [v2[0] / l2, v2[1] / l2];
+    const t = r / Math.tan(Math.acos(Math.max(-1, Math.min(1, u1[0] * u2[0] + u1[1] * u2[1]))) / 2);
+    const sweep = u1[0] * u2[1] - u1[1] * u2[0] > 0 ? 0 : 1;
+    d += ` L${f(p1[0] + u1[0] * t)} ${f(p1[1] + u1[1] * t)} A${r} ${r} 0 0 ${sweep} ${f(p1[0] + u2[0] * t)} ${f(p1[1] + u2[1] * t)}`;
+  }
+  const last = pts[pts.length - 1];
+  return `${d} L${f(last[0])} ${f(last[1])}`;
+}
+
+function villageGeometry(count: number, offset: number) {
+  const step = 46;
+  const unit = 52;
+  const sw = 7;
+  const top = 20; // room for the tallest head
+  const base = top + unit;
+  const people = Array.from({ length: count }, (_, i) => {
+    const h = VILLAGE[(i + offset) % VILLAGE.length];
+    const young = h < 0.72;
+    const r = sw * (young ? 0.62 : 0.72);
+    const x = sw + 4 + i * step;
+    const y = base - h * unit;
+    return { x, y, young, head: { cx: x, cy: y - sw / 2 - sw * (young ? 0.5 : 0.57) - r, r } };
+  });
+  const pts: Pt[] = [[people[0].x, base]];
+  people.forEach((p, i) => {
+    pts.push([p.x, p.y]);
+    if (i < people.length - 1) pts.push([people[i + 1].x, base]);
+  });
+  return { d: filletPath(pts, sw * 0.46), people, sw, width: people[count - 1].x + sw + 4, height: base + sw / 2 + 2 };
+}
+
+export function VillageLine({
+  className,
+  count = 40,
+  offset = 0,
+  height = 56,
+  accent = "var(--color-gold)",
+}: {
+  className?: string;
+  count?: number;
+  offset?: number;
+  height?: number;
+  accent?: string;
+}) {
+  const g = villageGeometry(count, offset);
+  return (
+    <div aria-hidden className={cn("flex justify-center overflow-hidden", className)}>
+      <svg
+        viewBox={`0 0 ${g.width} ${g.height}`}
+        className="village-line shrink-0"
+        style={{ height, width: (g.width / g.height) * height }}
+      >
+        <path d={g.d} pathLength={1} fill="none" stroke="currentColor" strokeWidth={g.sw} strokeLinecap="round" strokeLinejoin="round" />
+        {g.people.map((p, i) => (
+          <circle
+            key={i}
+            {...p.head}
+            fill={p.young ? accent : "currentColor"}
+            style={{ "--d": `${300 + i * 45}ms` } as React.CSSProperties}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 /** Thin woven aso-oke strip. */
 export function AsoOke({ className }: { className?: string }) {
   return <div aria-hidden className={cn("aso-oke h-1.5 w-full", className)} />;

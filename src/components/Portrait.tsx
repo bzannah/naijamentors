@@ -19,7 +19,7 @@ const SHAPES = {
   none: "",
 };
 
-/** A mentor photo framed in Village's signature arch. Falls back to an Adire-patterned monogram. */
+/** A mentor photo framed in our signature arch. Falls back to an Adire-patterned monogram. */
 export function Portrait({ src, name, className, sizes = "400px", priority, shape = "arch", zoom }: Props) {
   return (
     <div

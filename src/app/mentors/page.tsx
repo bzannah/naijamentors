@@ -46,7 +46,7 @@ export default async function MentorsPage({ searchParams }: PageProps<"/mentors"
           )}
           <p className="eyebrow animate-fade-up text-clay">The directory</p>
           <h1 className="font-display animate-fade-up mt-4 max-w-4xl text-[clamp(2.8rem,6vw,5.2rem)] leading-[0.98] tracking-[-0.04em] text-balance">
-            Find the mentor your teen <em className="text-forest-3">needs to meet.</em>
+            Find the mentor who&rsquo;s <em className="text-forest-3">walked the road.</em>
           </h1>
           <p className="animate-fade-up mt-5 max-w-xl text-[1.08rem] leading-relaxed text-ink-2" style={{ animationDelay: "100ms" }}>
             {mentors.length} accomplished British-Nigerians, every one verified and ready to give their time. Search by dream

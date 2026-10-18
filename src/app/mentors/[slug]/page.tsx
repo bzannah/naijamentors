@@ -8,6 +8,7 @@ import { Portrait } from "@/components/Portrait";
 import { Reveal } from "@/components/Reveal";
 import { getCurrentUser } from "@/lib/auth";
 import { FIELD_MAP } from "@/lib/fields";
+import { canBook } from "@/lib/mentees";
 import { fmtNext, toCard } from "@/lib/present";
 import { conversationBetween, getMentorBySlug, listMentors, mentorName } from "@/lib/queries";
 import { Arrow, buttonClasses } from "@/components/ui/Button";
@@ -37,8 +38,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
     .sort((a, b) => Number(b.field === m.field) - Number(a.field === m.field) || Number(b.region === m.region) - Number(a.region === m.region))
     .slice(0, 4);
 
-  const existing =
-    user?.role === "parent" ? await conversationBetween(user.id, m.id) : null;
+  const existing = user && canBook(user.role) ? await conversationBetween(user.id, m.id) : null;
 
   const verified = [
     { on: m.verified.dbs, icon: ShieldCheck, label: "Enhanced DBS check" },
@@ -120,7 +120,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
         <div className="min-w-0 space-y-16">
           {m.status === "pending" && (
             <div className="rounded-2xl bg-gold-soft p-5 text-[0.92rem] text-ink-2">
-              <strong className="text-ink">{m.firstName} is new to Village.</strong> Their DBS check and references are in progress.
+              <strong className="text-ink">{m.firstName} is new to Naija Mentors.</strong> Their DBS check and references are in progress.
               You can still send a request, and we&rsquo;ll let you know once verification is complete.
             </div>
           )}
@@ -197,7 +197,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
                     </span>
                     <div>
                       <p className="font-semibold">{v.label}</p>
-                      <p className="text-[0.88rem] text-ink-3">{v.on ? "Checked by the Village team" : "In progress"}</p>
+                      <p className="text-[0.88rem] text-ink-3">{v.on ? "Checked by the Naija Mentors team" : "In progress"}</p>
                     </div>
                   </li>
                 ))}
@@ -227,16 +227,24 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
           {isOwner ? (
             <div className="rounded-[32px] bg-card p-7 shadow-lift ring-1 ring-line">
               <p className="font-display text-2xl">This is your public profile.</p>
-              <p className="mt-2 text-ink-2">Parents see exactly this page. Manage your availability and requests from your dashboard.</p>
+              <p className="mt-2 text-ink-2">Mentees and parents see exactly this page. Manage your availability and requests from your dashboard.</p>
               <Link href="/dashboard" className="mt-5 inline-flex h-11 items-center rounded-full bg-forest px-5 font-semibold text-paper">
                 Go to dashboard
               </Link>
             </div>
           ) : (
             <BookingPanel
-              mentor={{ id: m.id, slug: m.slug, firstName: m.firstName, displayName: name, sessionLength: m.sessionLength, specialities: m.specialities }}
+              mentor={{
+                id: m.id,
+                slug: m.slug,
+                firstName: m.firstName,
+                displayName: name,
+                sessionLength: m.sessionLength,
+                specialities: m.specialities,
+                ageGroups: m.ageGroups,
+              }}
               slots={slots}
-              viewer={user ? { role: user.role, children: user.children ?? [] } : null}
+              viewer={user ? { role: user.role, mentees: user.mentees ?? [] } : null}
               initialSlot={typeof sp.slot === "string" ? sp.slot : undefined}
             />
           )}
@@ -252,7 +260,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
             </Link>
           )}
           <p className="mt-5 px-2 text-center text-[0.8rem] leading-relaxed text-ink-3">
-            {m.replies}. All messages stay on Village and are visible to the parent account.
+            {m.replies}. All messages stay on Naija Mentors, and parents see every message for under-18s.
           </p>
         </aside>
       </section>

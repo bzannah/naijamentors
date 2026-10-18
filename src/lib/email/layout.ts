@@ -1,8 +1,8 @@
 import { BRAND } from "../brand";
-import { safeguardingEmail } from "../env";
+import { appUrl, safeguardingEmail } from "../env";
 
 /*
-  One email layout in the Village palette: warm paper, a card, forest green call to action, gold rule.
+  One email layout in the Naija Mentors palette: warm paper, a card, forest green call to action, gold rule.
   Inline styles and tables only, because that's what email clients render reliably.
   Every piece of content is escaped, so names and messages can be passed straight in.
 */
@@ -107,7 +107,7 @@ export function renderEmail(c: EmailContent): { html: string; text: string } {
   <tr><td align="center" style="padding:40px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
       <tr><td style="padding:0 8px 22px;">
-        <span style="font-family:${SERIF};font-size:26px;letter-spacing:-0.02em;color:${C.forest};">${esc(BRAND.name)}</span>
+        <img src="${esc(appUrl())}/brand/email-logo.png" width="196" height="40" alt="${esc(BRAND.name)}" style="display:block;border:0;outline:none;font-family:${SERIF};font-size:26px;letter-spacing:-0.02em;color:${C.forest};">
       </td></tr>
       <tr><td style="background:${C.card};border-radius:28px;border:1px solid ${C.line};padding:36px 32px 32px;">
         <p style="margin:0 0 14px;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:${C.clay};">${esc(c.eyebrow)}</p>

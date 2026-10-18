@@ -1,8 +1,10 @@
-# Village
+# Naija Mentors
 
-**It takes a village to raise a child.**
+**It takes a village to raise a generation.** · [naijamentors.com](https://naijamentors.com)
 
-Village connects British-Nigerian teenagers with accomplished mentors from their own community: doctors, engineers, barristers, founders and more. Parents browse mentors, see their real availability, request a free 45-minute video session, and talk to the mentor in a built-in inbox. A mentorship guide sets clear expectations for mentors, teens and parents, and a small admin area lets the Village team verify mentors before they show as verified.
+Naija Mentors connects young British-Nigerians aged 11 to 30 with accomplished mentors from their own community: doctors, engineers, barristers, founders and more. Mentees browse mentors, see their real availability, request a free 45-minute video session, and talk to the mentor in a built-in inbox. A mentorship guide sets clear expectations for mentors, mentees and parents, and a small admin area lets the Naija Mentors team verify mentors before they show as verified.
+
+**Who books.** Mentees aged 18 to 30 have their own account and book for themselves. Under-18s (11 to 17) are booked by a parent or guardian, who sees every message. The ages live in `src/lib/mentees.ts`.
 
 ## Run it locally
 
@@ -11,27 +13,28 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Village runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads 24 sample mentors and a few conversations. Emails are printed to the terminal instead of sent.
+Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Naija Mentors runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads 24 sample mentors and a few conversations. Emails are printed to the terminal instead of sent.
 
 To use a real Postgres server instead (recommended once you're working on data or queries):
 
 ```bash
-createdb village                                   # or Docker, Neon, Supabase…
-echo 'DATABASE_URL=postgres://localhost:5432/village' >> .env.local
+createdb naijamentors                              # or Docker, Neon, Supabase…
+echo 'DATABASE_URL=postgres://localhost:5432/naijamentors' >> .env.local
 npm run db:setup                                   # apply migrations and load the demo data
 npm run dev
 ```
 
 ### Demo accounts
 
-The sign-in page has one-click buttons for the parent and mentor demos. Every demo account uses the password `village-demo`.
+The sign-in page has one-click buttons for the mentee, parent and mentor demos (each one appears once its account exists). Every demo account uses the password `village-demo`.
 
 | Role | Email | What you'll see |
 | --- | --- | --- |
-| Parent | `funmi@village.demo` | Mum of Tobi (15) and David (13). One confirmed session with Dr. Chiamaka, one pending request with Tunde |
-| Mentor | `chiamaka@mentor.village.demo` | A pending request from Somto's dad to accept or decline, an upcoming session, and a past one |
-| Any mentor | `<firstname>@mentor.village.demo` | e.g. `tunde@mentor.village.demo` |
-| Admin | `admin@village.demo` | The verification area at `/admin` |
+| Mentee (18+) | `bukky@naijamentors.demo` | Bukola, 23, a recent graduate. A confirmed session with Tunde and a pending request with Temi |
+| Parent | `funmi@naijamentors.demo` | Mum of Tobi (15) and David (13). One confirmed session with Dr. Chiamaka, one pending request with Tunde |
+| Mentor | `chiamaka@mentor.naijamentors.demo` | Pending requests from Somto's dad and from Kunle, a medical student, plus an upcoming session and a past one |
+| Any mentor | `<firstname>@mentor.naijamentors.demo` | e.g. `tunde@mentor.naijamentors.demo` |
+| Admin | `admin@naijamentors.demo` | The verification area at `/admin` |
 
 To start the demo over (all requests, messages and new accounts are wiped):
 
@@ -49,10 +52,10 @@ All settings are environment variables. Copy `.env.example` to `.env.local` for 
 | --- | --- | --- |
 | `DATABASE_URL` | **Required** | `postgres://…` for a Postgres server. Defaults to `pglite://data/pglite` (the embedded database) in development |
 | `SESSION_SECRET` | **Required** | Signs the session cookie. At least 32 random characters: `openssl rand -base64 48`. Changing it signs everyone out |
-| `APP_URL` | **Required** | Public address, e.g. `https://village.example.org`. Used for links in emails |
-| `SAFEGUARDING_EMAIL` | Recommended | The safeguarding lead's inbox, shown on the guide, the session room, the footer and in every email. Defaults to `safeguarding@village.demo` |
+| `APP_URL` | **Required** | Public address, e.g. `https://naijamentors.com`. Used for links in emails and the email logo |
+| `SAFEGUARDING_EMAIL` | Recommended | The safeguarding lead's inbox, shown on the guide, the session room, the footer and in every email. Defaults to `safeguarding@naijamentors.com`, so make sure that mailbox exists |
 | `RESEND_API_KEY` | Recommended | Sends email through [Resend](https://resend.com). Without it emails are only logged |
-| `EMAIL_FROM` | With Resend | Sender, e.g. `Village <hello@village.example.org>`. The domain must be verified in Resend |
+| `EMAIL_FROM` | With Resend | Sender, e.g. `Naija Mentors <hello@naijamentors.com>`. The domain must be verified in Resend |
 | `EMAIL_REPLY_TO` | Optional | Where replies to notification emails go |
 | `CRON_SECRET` | **Required** for the digest | Protects `/api/cron/message-digest` |
 | `DATABASE_POOL_MAX` | Optional | Connections per server instance (default 10) |
@@ -64,7 +67,9 @@ Postgres, accessed through [Drizzle ORM](https://orm.drizzle.team). Every page a
 - `src/lib/db/schema.ts`: the tables (`users`, `mentors`, `conversations`, `sessions`, `messages`), indexes and constraints
 - `src/lib/queries.ts` (reads) and `src/app/actions.ts` (writes)
 
-The domain types in `src/lib/types.ts` are unchanged; `src/lib/db/mappers.ts` converts rows to and from them. Timestamps are `timestamptz` columns that the app reads and writes as ISO strings. A partial unique index on `sessions (mentor_id, start)` for pending and accepted sessions guarantees two families can never book the same slot, even if they press the button at the same moment.
+The domain types in `src/lib/types.ts` are unchanged; `src/lib/db/mappers.ts` converts rows to and from them. Timestamps are `timestamptz` columns that the app reads and writes as ISO strings. A partial unique index on `sessions (mentor_id, start)` for pending and accepted sessions guarantees two people can never book the same slot, even if they press the button at the same moment.
+
+A few columns predate adult mentees and keep their original SQL names, mapped to clearer names in code: `users.children` is `mentees` (everyone an account books for), `parent_id` is `accountId` (the mentee-side account, a parent or an adult mentee), and `school_year` is `stage` (a school year for under-18s, a life stage for adults).
 
 The connection is chosen by `DATABASE_URL` (`src/lib/db/index.ts`): `postgres://` uses [postgres.js](https://github.com/porsager/postgres) with prepared statements off, so it works behind PgBouncer and the Supabase and Neon poolers; `pglite://<dir>` opens the embedded database.
 
@@ -86,8 +91,8 @@ Notifications live in `src/lib/notifications.ts` and go through a small `Mailer`
 
 | When | Who hears about it |
 | --- | --- |
-| A parent requests a session | The mentor |
-| The mentor accepts or declines | The parent, with the mentor's note and, on acceptance, a link to the session room |
+| A mentee or parent requests a session | The mentor |
+| The mentor accepts or declines | Whoever asked, with the mentor's note and, on acceptance, a link to the session room |
 | Either side cancels | The other side |
 | An admin approves a mentor | The mentor |
 | Messages sit unread for 10 minutes | The recipient, in one **digest** per person listing each conversation |
@@ -97,7 +102,7 @@ Event emails are sent right after the response with Next.js `after()`, so a slow
 The digest runs on a schedule. Call it every 15 to 60 minutes:
 
 ```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://village.example.org/api/cron/message-digest
+curl -H "Authorization: Bearer $CRON_SECRET" https://naijamentors.com/api/cron/message-digest
 ```
 
 On Vercel, add a cron to `vercel.json` (Vercel sends the `CRON_SECRET` header for you):
@@ -110,14 +115,14 @@ Or run it from any scheduler with access to the database: `npm run email:digest`
 
 ## Admin and mentor verification
 
-Accounts have one of three roles: `parent`, `mentor` or `admin`. Admins sign in normally and land on `/admin`; the dashboard and inbox redirect them there.
+Accounts have one of four roles: `mentee` (18 to 30, books for themselves), `parent` (books for children aged 11 to 17), `mentor` or `admin`. Admins sign in normally and land on `/admin`; the dashboard and inbox redirect them there.
 
 New mentors apply at `/become-a-mentor`. Their profile goes live straight away marked **verification in progress**, with status `pending`. On `/admin` the team ticks the three checks (enhanced DBS, identity, references) as they complete; **Approve & publish** becomes available once all three are ticked and flips the mentor to `active`, which shows the verified badge and emails the mentor. **Review again** moves a live mentor back to pending, for example while a DBS renewal is in progress; their checks are kept so they can be updated and approved again. The server enforces that a live mentor holds all three checks.
 
 Create the first real admin account after deploying:
 
 ```bash
-npm run db:create-admin -- safeguarding@village.example.org "Village Team"
+npm run db:create-admin -- safeguarding@naijamentors.com "Naija Mentors Team"
 ```
 
 ## Deploying
@@ -139,12 +144,23 @@ npm run db:create-admin -- safeguarding@village.example.org "Village Team"
 | Inbox | `/inbox`, `/inbox/[id]` | Two-pane messaging, session request cards, accept / decline with a note, cancel, live refresh every 5s |
 | Session room | `/sessions/[id]` | Countdown, agenda, checklist, suggested questions, join button that opens 15 minutes before |
 | Calendar | `/api/sessions/[id]/ics` | "Add to calendar" download with a 30-minute reminder |
-| Dashboard | `/dashboard` | Parent view (next session, requests, children) or mentor view (requests, stats, weekly availability editor) |
-| The guide | `/guide` | Principles, expectations for mentors / teens / parents, first-session agenda, safeguarding, the pledge |
+| Dashboard | `/dashboard` | Mentee or parent view (next session, requests, profile or children) or mentor view (requests, stats, weekly availability editor) |
+| The guide | `/guide` | Principles, expectations for mentors / mentees / parents, first-session agenda, safeguarding, the pledge |
+| Brand | `/brand` | The logo story, logo family, colour, type, voice and downloadable assets |
 | Become a mentor | `/become-a-mentor` | Four-step application with photo upload; creates a live profile marked "verification in progress" |
 | Admin | `/admin` | Verification checks, approve and publish, send a mentor back for review |
 | Message digest | `/api/cron/message-digest` | Scheduled job that emails unread-message digests |
-| Auth | `/signin`, `/signup` | Parent sign-up with optional child details; signed, httpOnly session cookie |
+| Auth | `/signin`, `/signup` | Sign-up as a mentee (18 to 30, with age and stage) or a parent (with optional child details); signed, httpOnly session cookie |
+
+## Brand
+
+The name is **Naija Mentors**: two words, both capitalised. The line is **It takes a village.** The full brand book, with the logo story and every asset to download, is at `/brand`.
+
+The mark is one continuous line that climbs (a mentor), reaches back down and rises again (a young person, whose head is gold). Together they draw the N of Naija. Continued, the same line becomes the **village line**, a row of people used in the footer.
+
+- `public/brand/` holds the logo masters: horizontal, reversed, one-colour and stacked logos, the mark, the app icon and the seal, as SVG with PNG exports, plus the email logo and manifest icons
+- `src/app/favicon.ico`, `icon.svg`, `apple-icon.png` and `opengraph-image.png` are picked up by Next.js automatically
+- `src/lib/logo.ts` has the mark geometry and the outlined wordmark (Fraunces at opsz 96, weight 460, SOFT 100), so the logo never waits for a web font. `src/components/Logo.tsx` renders it; `VillageLine` lives in `src/components/Patterns.tsx`
 
 ## How it's built
 

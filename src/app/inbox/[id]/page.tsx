@@ -59,11 +59,11 @@ export default async function ThreadPage({ params, searchParams }: PageProps<"/i
     <ThreadView
       key={t.conversation.id}
       conversationId={t.conversation.id}
-      viewer={{ id: user.id, role: user.role }}
+      viewer={{ id: user.id, side: user.role === "mentor" ? "mentor" : "account" }}
       header={t.other}
-      mentee={{ name: t.conversation.menteeName, age: t.conversation.menteeAge, schoolYear: t.conversation.schoolYear }}
+      mentee={{ name: t.conversation.menteeName, age: t.conversation.menteeAge, stage: t.conversation.stage }}
       mentor={{ userId: m.userId, firstName: m.firstName, displayName: mentorName(m), short: `${m.honorific ? m.honorific + " " : ""}${m.firstName}`, replies: m.replies }}
-      parent={{ id: t.parent.id, firstName: t.parent.name.split(" ")[0], name: t.parent.name, city: t.parent.city }}
+      account={{ id: t.account.id, firstName: t.account.name.split(" ")[0], self: t.account.role === "mentee" }}
       messages={messages}
       sessions={sessions}
       justSent={sp.sent === "1"}

@@ -1,4 +1,4 @@
-export type Role = "parent" | "mentor" | "admin";
+export type Role = "parent" | "mentee" | "mentor" | "admin";
 
 /** A recurring weekly slot in UK time. day: 0 = Sunday … 6 = Saturday. */
 export type WeeklySlot = { day: number; time: string };
@@ -49,7 +49,11 @@ export type Mentor = {
   approvedAt?: string;
 };
 
-export type Child = { name: string; age: number; schoolYear: string };
+/**
+ * Someone an account books sessions for: a parent's child (11–17), or an adult mentee (18–30) themselves.
+ * stage is the school year for under-18s ("Year 11") and a life stage for adults ("Early in my career").
+ */
+export type Mentee = { name: string; age: number; stage: string };
 
 export type User = {
   id: string;
@@ -60,19 +64,20 @@ export type User = {
   createdAt: string;
   mentorId?: string;
   city?: string;
-  children?: Child[];
+  mentees?: Mentee[];
 };
 
 export type Conversation = {
   id: string;
-  parentId: string;
+  /** The account on the mentee's side: a parent booking for their child, or an adult mentee themselves. */
+  accountId: string;
   mentorId: string;
   menteeName: string;
   menteeAge: number;
-  schoolYear: string;
+  stage: string;
   createdAt: string;
   updatedAt: string;
-  lastRead: { parent: string; mentor: string };
+  lastRead: { account: string; mentor: string };
 };
 
 export type SessionStatus = "pending" | "accepted" | "declined" | "cancelled";
@@ -81,7 +86,7 @@ export type Session = {
   id: string;
   conversationId: string;
   mentorId: string;
-  parentId: string;
+  accountId: string;
   start: string;
   durationMin: number;
   topic: string;

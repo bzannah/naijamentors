@@ -1,11 +1,17 @@
 import { sql } from "drizzle-orm";
 import { bigint, boolean, customType, index, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
-import type { Child, FieldKey, Role, SessionStatus, WeeklySlot } from "../types";
+import type { FieldKey, Mentee, Role, SessionStatus, WeeklySlot } from "../types";
 
 /*
-  Postgres schema for Village. Mirrors the entities in src/lib/types.ts; the row → domain
+  Postgres schema for Naija Mentors. Mirrors the entities in src/lib/types.ts; the row → domain
   mapping lives in ./mappers.ts so pages keep working with the plain types.
+
+  Some columns predate adult mentees and keep their original names: users.children holds everyone an
+  account books for, parent_id is the mentee-side account, and school_year holds the mentee's stage.
 */
+
+/** Mentees as stored. Rows written before adult mentees have schoolYear instead of stage. */
+export type StoredMentee = { name: string; age: number; stage?: string; schoolYear?: string };
 
 /**
  * timestamptz that reads and writes ISO-8601 strings, which is what the rest of the app uses.
@@ -32,7 +38,7 @@ export const users = pgTable(
     // Points at mentors.id. Not a foreign key because mentors.user_id already points back here.
     mentorId: text("mentor_id"),
     city: text("city"),
-    children: jsonb("children").$type<Child[]>().notNull().default([]),
+    mentees: jsonb("children").$type<StoredMentee[]>().notNull().default([]),
     // Last time this user was sent an unread-messages digest.
     digestSentAt: isoTimestamp("digest_sent_at"),
   },
@@ -87,7 +93,7 @@ export const conversations = pgTable(
   "conversations",
   {
     id: text("id").primaryKey(),
-    parentId: text("parent_id")
+    accountId: text("parent_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     mentorId: text("mentor_id")
@@ -95,13 +101,13 @@ export const conversations = pgTable(
       .references(() => mentors.id, { onDelete: "cascade" }),
     menteeName: text("mentee_name").notNull(),
     menteeAge: integer("mentee_age").notNull(),
-    schoolYear: text("school_year").notNull(),
+    stage: text("school_year").notNull(),
     createdAt: at("created_at").default(sql`now()`),
     updatedAt: at("updated_at").default(sql`now()`),
-    lastReadParent: at("last_read_parent").default(sql`now()`),
+    lastReadAccount: at("last_read_parent").default(sql`now()`),
     lastReadMentor: at("last_read_mentor").default(sql`'epoch'`),
   },
-  (t) => [index("conversations_parent_idx").on(t.parentId), index("conversations_mentor_idx").on(t.mentorId)],
+  (t) => [index("conversations_parent_idx").on(t.accountId), index("conversations_mentor_idx").on(t.mentorId)],
 );
 
 export const sessions = pgTable(
@@ -114,7 +120,7 @@ export const sessions = pgTable(
     mentorId: text("mentor_id")
       .notNull()
       .references(() => mentors.id, { onDelete: "cascade" }),
-    parentId: text("parent_id")
+    accountId: text("parent_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     start: at("start"),
@@ -128,8 +134,8 @@ export const sessions = pgTable(
   },
   (t) => [
     index("sessions_conversation_idx").on(t.conversationId),
-    index("sessions_parent_idx").on(t.parentId),
-    // A mentor can only hold one live booking per slot. This is what stops two parents grabbing the same time.
+    index("sessions_parent_idx").on(t.accountId),
+    // A mentor can only hold one live booking per slot. This is what stops two people grabbing the same time.
     uniqueIndex("sessions_live_slot_key")
       .on(t.mentorId, t.start)
       .where(sql`${t.status} in ('pending', 'accepted')`),

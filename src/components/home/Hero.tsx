@@ -31,26 +31,26 @@ export function Hero({ feature, left, right, faces, stats, sessionAt = feature.n
               <span className="h-1.5 w-1.5 rounded-full bg-[#3fa66b]" />
               FREE
             </span>
-            Mentorship for British-Nigerian teenagers
+            Mentorship for young British-Nigerians, 11–30
           </div>
 
           <h1
             className="font-display animate-fade-up mt-7 text-[clamp(3.1rem,7.4vw,6.6rem)] leading-[0.94] font-[360] tracking-[-0.045em] text-balance"
             style={{ animationDelay: "80ms" }}
           >
-            It takes a <em className="text-forest-3">village</em> to raise a child.
+            It takes a <em className="text-forest-3">village</em> to raise a generation.
           </h1>
 
           <p
             className="animate-fade-up mt-7 max-w-[34rem] text-[1.14rem] leading-relaxed text-ink-2 text-pretty"
             style={{ animationDelay: "160ms" }}
           >
-            Introduce your teenager to the doctors, engineers, lawyers and founders of our own community. People who have
-            walked the road and want to light it for the next generation, in free, parent-approved video sessions.
+            Whether you&rsquo;re fifteen or twenty-five, meet the doctors, engineers, lawyers and founders of our own community.
+            People who have walked the road and want to light it for the next generation, in free, safe video sessions.
           </p>
 
           <p className="animate-fade-up mt-9 mb-3 pl-1 text-[0.85rem] font-semibold text-ink-2" style={{ animationDelay: "220ms" }}>
-            What does your teen dream of becoming?
+            What&rsquo;s the dream?
           </p>
           <form
             action="/mentors"
@@ -59,7 +59,7 @@ export function Hero({ feature, left, right, faces, stats, sessionAt = feature.n
           >
             <Search className="h-5 w-5 shrink-0 text-ink-3" />
             <label htmlFor="hero-q" className="sr-only">
-              What does your teen dream of becoming?
+              What&rsquo;s the dream?
             </label>
             <input
               id="hero-q"

@@ -6,7 +6,7 @@ import { ConversationList, type ListItem } from "./ConversationList";
 
 export default async function InboxLayout({ children }: LayoutProps<"/inbox">) {
   const user = await requireUser(undefined, "/inbox");
-  // The inbox is between families and mentors. Admins work from /admin.
+  // The inbox is between mentors and mentee accounts (parents, or mentees aged 18+). Admins work from /admin.
   if (user.role === "admin") redirect(homeFor(user.role));
   const items: ListItem[] = (await conversationsFor(user)).map(({ conversation: c, other, last, unread, session }) => ({
     id: c.id,
@@ -26,7 +26,7 @@ export default async function InboxLayout({ children }: LayoutProps<"/inbox">) {
   return (
     <div className="mx-auto flex w-full max-w-[1320px] flex-1 px-0 sm:px-8 sm:py-6">
       <div className="flex h-[calc(100dvh-72px)] w-full overflow-hidden bg-card ring-line sm:h-[calc(100dvh-72px-48px)] sm:rounded-[32px] sm:shadow-soft sm:ring-1">
-        <ConversationList items={items} role={user.role} />
+        <ConversationList items={items} side={user.role === "mentor" ? "mentor" : "account"} />
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </div>
     </div>

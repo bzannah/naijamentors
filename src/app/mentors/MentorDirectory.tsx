@@ -143,7 +143,7 @@ export function MentorDirectory({
             <div className="animate-fade-up mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2 lg:grid-cols-5">
               <Select label="Language at home" value={language} onChange={setLanguage} options={languages} any="Any language" />
               <Select label="Region" value={region} onChange={setRegion} options={regions} any="Anywhere in the UK" />
-              <Select label="Teen's age" value={age} onChange={setAge} options={AGE_GROUPS} any="Any age" />
+              <Select label="Mentee's age" value={age} onChange={setAge} options={AGE_GROUPS} any="Any age" />
               <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line-2 lg:self-end">
                 <span className="text-[0.9rem] font-medium">Available this week</span>
                 <span className={cn("relative h-6 w-11 rounded-full transition", thisWeek ? "bg-forest-3" : "bg-paper-3")}>

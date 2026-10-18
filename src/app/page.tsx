@@ -128,9 +128,9 @@ function Untapped({ mentors, fields }: { mentors: number; fields: number }) {
           <p className="font-display mt-6 max-w-5xl text-[clamp(1.9rem,4.2vw,3.6rem)] leading-[1.12] tracking-[-0.03em] text-ink text-balance">
             Our community is full of consultants, engineers, barristers and founders.{" "}
             <span className="text-ink-3">
-              Yet too many of our teenagers grow up without ever sitting across from one.{" "}
+              Yet too many of our young people grow up, graduate and start out without ever sitting across from one.{" "}
             </span>
-            <em className="text-forest-3">Village changes that.</em>
+            <em className="text-forest-3">Naija Mentors changes that.</em>
           </p>
         </Reveal>
 
@@ -142,8 +142,8 @@ function Untapped({ mentors, fields }: { mentors: number; fields: number }) {
               note: "Census 2021, ONS",
             },
             { big: String(mentors), label: `verified mentors already giving their time, across ${fields} career fields.`, note: "And growing every week" },
-            { big: "£0", label: "for families. Always. Mentors give their time as a gift to the community.", note: "No fees, no catches" },
-            { big: "45", unit: "min", label: "is all it takes to change what a teenager believes is possible for them.", note: "One session at a time" },
+            { big: "£0", label: "for mentees and families. Always. Mentors give their time as a gift to the community.", note: "No fees, no catches" },
+            { big: "45", unit: "min", label: "is all it takes to change what a young person believes is possible for them.", note: "One session at a time" },
           ].map((s, i) => (
             <Reveal key={s.big} delay={i * 100} className="bg-card p-8 sm:p-10">
               <p className="font-display text-[3.8rem] leading-none tracking-[-0.04em] text-forest">
@@ -236,8 +236,8 @@ function Proverbs() {
 
 function GuideTeaser() {
   const cards = [
-    { who: "For mentors", points: ["Show up on time, every time", "Listen more than you talk", "Keep every conversation on Village"] },
-    { who: "For teens", points: ["Bring your real questions", "Camera on, notes out", "Follow through on one small action"] },
+    { who: "For mentors", points: ["Show up on time, every time", "Listen more than you talk", "Keep every conversation on Naija Mentors"] },
+    { who: "For mentees", points: ["Bring your real questions", "Camera on, notes out", "Follow through on one small action"] },
     { who: "For parents", points: ["Stay nearby for under-16s", "Let your child lead the conversation", "Share feedback after each session"] },
   ];
   return (
@@ -246,12 +246,12 @@ function GuideTeaser() {
       <div className="pointer-events-none absolute -right-40 -bottom-40 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgb(195_154_75/0.28),transparent)]" />
       <div className="relative mx-auto grid max-w-[1320px] items-center gap-16 px-5 sm:px-8 lg:grid-cols-[1fr_1.15fr]">
         <Reveal>
-          <p className="eyebrow text-gold-2">The Village guide</p>
+          <p className="eyebrow text-gold-2">The Naija Mentors guide</p>
           <h2 className="font-display mt-4 text-[clamp(2.5rem,5vw,4.4rem)] leading-[1] tracking-[-0.035em] text-balance">
             Mentorship, <em className="text-gold-2">done properly.</em>
           </h2>
           <p className="mt-6 max-w-md text-[1.08rem] leading-relaxed text-paper/75">
-            Clear expectations for mentors, teenagers and parents, so every session is safe, warm and worth everyone&rsquo;s
+            Clear expectations for mentors, mentees and parents, so every session is safe, warm and worth everyone&rsquo;s
             time. Read it together before your first session.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
@@ -294,8 +294,8 @@ function GuideTeaser() {
 function Safety() {
   const items = [
     { icon: ShieldCheck, title: "Every mentor is vetted", body: "Identity checks, two professional references and an enhanced DBS check before a mentor can accept sessions." },
-    { icon: Users, title: "Parents in the loop", body: "Accounts belong to parents. Every request and message goes through you, and you can join any session." },
-    { icon: Lock, title: "Conversations stay here", body: "Messages and video links live on Village. Mentors never ask for phone numbers or social media." },
+    { icon: Users, title: "Parents in the loop", body: "Under-18s are booked by a parent, who sees every message and can join any session. From 18, mentees book for themselves." },
+    { icon: Lock, title: "Conversations stay here", body: "Messages and video links live on Naija Mentors. Mentors never ask for phone numbers or social media." },
     { icon: Eye, title: "Clear, simple reporting", body: "A named safeguarding lead and a one-tap way to raise a concern, reviewed within 24 hours." },
   ];
   return (
@@ -308,7 +308,7 @@ function Safety() {
               Trust is the <em>whole point.</em>
             </h2>
             <p className="mt-6 max-w-md text-[1.05rem] leading-relaxed text-ink-2">
-              We built Village the way a careful auntie would: warm and welcoming, but nobody gets near the children without
+              We built Naija Mentors the way a careful auntie would: warm and welcoming, but nobody gets near our young people without
               being properly checked.
             </p>
             <Link href="/guide#safeguarding" className="mt-7 inline-flex items-center gap-2 text-[0.95rem] font-semibold text-forest underline decoration-gold decoration-2 underline-offset-[6px] hover:decoration-forest">
@@ -349,7 +349,7 @@ function MentorCta({ faces }: { faces: MentorListing[] }) {
             </h2>
             <p className="mt-6 max-w-lg text-[1.1rem] leading-relaxed text-paper/75">
               Somewhere in Britain, a fifteen-year-old with your surname is wondering whether people like them become people
-              like you. Give 45 minutes a month and show them.
+              like you. A graduate is sending their fortieth application. Give 45 minutes a month and show them.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <ButtonLink href="/become-a-mentor" variant="gold" size="lg" arrow>

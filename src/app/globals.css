@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  Village design tokens.
+  Naija Mentors design tokens.
   Warm paper, deep forest green, bronze gold, terracotta clay and Adire indigo.
 */
 @theme {
@@ -61,6 +61,15 @@
     from { opacity: 0; transform: scale(0.92); }
     to { opacity: 1; transform: scale(1); }
   }
+}
+
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes head-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
 }
 
 :root {
@@ -169,6 +178,59 @@ body {
   .hairline {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--color-line-2), transparent);
+  }
+
+  /* ---------- Logo & village line ---------- */
+
+  /* The young person's head lifts when the logo is hovered: lift as you climb. */
+  .logo-young {
+    transition: transform 0.7s var(--ease-spring);
+  }
+  .group:hover .logo-young,
+  .group:focus-visible .logo-young {
+    transform: translateY(-9px);
+  }
+
+  /* The brand page's hero mark draws itself: mentor, reach, young person, then the heads. */
+  .mark-draw path {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+    animation: draw-line 2.4s var(--ease-out-expo) 0.35s forwards;
+  }
+  .mark-draw circle {
+    opacity: 0;
+    animation: head-in 0.9s var(--ease-spring) forwards;
+  }
+  .mark-draw circle:first-of-type {
+    animation-delay: 0.85s;
+  }
+  .mark-draw circle:last-of-type {
+    animation-delay: 1.55s;
+  }
+
+  /* The village draws itself in once its Reveal wrapper is visible. */
+  .village-line path {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+    opacity: 0;
+    transition:
+      stroke-dashoffset 2.8s var(--ease-out-expo) 0.15s,
+      opacity 0.3s 0.15s;
+  }
+  .village-line circle {
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity 0.6s var(--d, 0ms),
+      transform 0.9s var(--ease-spring) var(--d, 0ms);
+  }
+  .is-visible .village-line path {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  .is-visible .village-line circle {
+    opacity: 1;
+    transform: none;
   }
 
   /* ---------- Motion ---------- */
@@ -286,9 +348,12 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .reveal {
+  .reveal,
+  .village-line path,
+  .village-line circle {
     opacity: 1;
     transform: none;
+    stroke-dashoffset: 0;
   }
 }
 

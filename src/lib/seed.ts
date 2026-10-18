@@ -8,17 +8,18 @@ import { upcomingSlots } from "./time";
 import type { Conversation, Db, Message, Mentor, Session, User } from "./types";
 
 export const DEMO_PASSWORD = "village-demo";
-export const DEMO_PARENT_EMAIL = "funmi@village.demo";
-export const DEMO_MENTOR_EMAIL = "chiamaka@mentor.village.demo";
-export const DEMO_ADMIN_EMAIL = "admin@village.demo";
+export const DEMO_PARENT_EMAIL = "funmi@naijamentors.demo";
+export const DEMO_MENTEE_EMAIL = "bukky@naijamentors.demo";
+export const DEMO_MENTOR_EMAIL = "chiamaka@mentor.naijamentors.demo";
+export const DEMO_ADMIN_EMAIL = "admin@naijamentors.demo";
 
 export function mentorEmail(m: Pick<Mentor, "firstName">) {
-  return `${m.firstName.toLowerCase()}@mentor.village.demo`;
+  return `${m.firstName.toLowerCase()}@mentor.naijamentors.demo`;
 }
 
 export function meetingUrl(mentor: Pick<Mentor, "firstName">, mentee: string, id: string) {
   const clean = (s: string) => s.replace(/[^a-zA-Z0-9]/g, "");
-  return `https://meet.jit.si/Village-${clean(mentor.firstName)}-${clean(mentee)}-${id.slice(-6)}`;
+  return `https://meet.jit.si/NaijaMentors-${clean(mentor.firstName)}-${clean(mentee)}-${id.slice(-6)}`;
 }
 
 /** Build a fresh database with sample mentors and a few lived-in conversations. */
@@ -37,30 +38,54 @@ export function buildSeed(now = Date.now()): Db {
       passwordHash: pw,
       createdAt: iso(-40 * D),
       city: "London",
-      children: [
-        { name: "Tobi", age: 15, schoolYear: "Year 11" },
-        { name: "David", age: 13, schoolYear: "Year 8" },
+      mentees: [
+        { name: "Tobi", age: 15, stage: "Year 11" },
+        { name: "David", age: 13, stage: "Year 8" },
       ],
     },
     {
       id: "u_chinedu",
       role: "parent",
       name: "Chinedu Eze",
-      email: "chinedu@village.demo",
+      email: "chinedu@naijamentors.demo",
       passwordHash: pw,
       createdAt: iso(-20 * D),
       city: "Manchester",
-      children: [{ name: "Somto", age: 16, schoolYear: "Year 12" }],
+      mentees: [{ name: "Somto", age: 16, stage: "Year 12" }],
     },
     {
       id: "u_halima",
       role: "parent",
       name: "Halima Musa",
-      email: "halima@village.demo",
+      email: "halima@naijamentors.demo",
       passwordHash: pw,
       createdAt: iso(-60 * D),
       city: "Birmingham",
-      children: [{ name: "Amina", age: 14, schoolYear: "Year 10" }],
+      mentees: [{ name: "Amina", age: 14, stage: "Year 10" }],
+    },
+  ];
+
+  // Mentees aged 18+ hold their own accounts and book for themselves.
+  const adults: User[] = [
+    {
+      id: "u_bukky",
+      role: "mentee",
+      name: "Bukola Ajayi",
+      email: DEMO_MENTEE_EMAIL,
+      passwordHash: pw,
+      createdAt: iso(-12 * D),
+      city: "Manchester",
+      mentees: [{ name: "Bukola", age: 23, stage: "Recently graduated" }],
+    },
+    {
+      id: "u_kunle",
+      role: "mentee",
+      name: "Kunle Ogunbiyi",
+      email: "kunle@naijamentors.demo",
+      passwordHash: pw,
+      createdAt: iso(-4 * D),
+      city: "London",
+      mentees: [{ name: "Kunle", age: 21, stage: "At university" }],
     },
   ];
 
@@ -68,7 +93,7 @@ export function buildSeed(now = Date.now()): Db {
     {
       id: "u_admin",
       role: "admin",
-      name: "Village Team",
+      name: "Naija Mentors Team",
       email: DEMO_ADMIN_EMAIL,
       passwordHash: pw,
       createdAt: iso(-90 * D),
@@ -89,9 +114,11 @@ export function buildSeed(now = Date.now()): Db {
 
   const chiamaka = mentors.find((m) => m.slug === "chiamaka-obi")!;
   const tunde = mentors.find((m) => m.slug === "tunde-adebayo")!;
+  const temi = mentors.find((m) => m.slug === "temi-ogunleye")!;
 
   const chiSlots = upcomingSlots(chiamaka.availability, new Set(), { now, leadHours: 30 });
   const tundeSlots = upcomingSlots(tunde.availability, new Set(), { now, leadHours: 30 });
+  const temiSlots = upcomingSlots(temi.availability, new Set(), { now, leadHours: 30 });
 
   const conversations: Conversation[] = [];
   const messages: Message[] = [];
@@ -103,20 +130,20 @@ export function buildSeed(now = Date.now()): Db {
   {
     const c: Conversation = {
       id: "c_funmi_chiamaka",
-      parentId: "u_funmi",
+      accountId: "u_funmi",
       mentorId: chiamaka.id,
       menteeName: "Tobi",
       menteeAge: 15,
-      schoolYear: "Year 11",
+      stage: "Year 11",
       createdAt: iso(-3 * D),
       updatedAt: iso(-5 * H),
-      lastRead: { parent: iso(-20 * H), mentor: iso(-5 * H) },
+      lastRead: { account: iso(-20 * H), mentor: iso(-5 * H) },
     };
     const s: Session = {
       id: "s_tobi_1",
       conversationId: c.id,
       mentorId: chiamaka.id,
-      parentId: c.parentId,
+      accountId: c.accountId,
       start: chiSlots[0].start,
       durationMin: 45,
       topic: "Exploring a career in medicine",
@@ -164,20 +191,20 @@ export function buildSeed(now = Date.now()): Db {
   {
     const c: Conversation = {
       id: "c_funmi_tunde",
-      parentId: "u_funmi",
+      accountId: "u_funmi",
       mentorId: tunde.id,
       menteeName: "David",
       menteeAge: 13,
-      schoolYear: "Year 8",
+      stage: "Year 8",
       createdAt: iso(-7 * H),
       updatedAt: iso(-7 * H),
-      lastRead: { parent: iso(-7 * H), mentor: iso(-30 * D) },
+      lastRead: { account: iso(-7 * H), mentor: iso(-30 * D) },
     };
     const s: Session = {
       id: "s_david_1",
       conversationId: c.id,
       mentorId: tunde.id,
-      parentId: c.parentId,
+      accountId: c.accountId,
       start: tundeSlots[0].start,
       durationMin: 45,
       topic: "Getting started with coding",
@@ -201,20 +228,20 @@ export function buildSeed(now = Date.now()): Db {
   {
     const c: Conversation = {
       id: "c_chinedu_chiamaka",
-      parentId: "u_chinedu",
+      accountId: "u_chinedu",
       mentorId: chiamaka.id,
       menteeName: "Somto",
       menteeAge: 16,
-      schoolYear: "Year 12",
+      stage: "Year 12",
       createdAt: iso(-26 * H),
       updatedAt: iso(-26 * H),
-      lastRead: { parent: iso(-26 * H), mentor: iso(-30 * D) },
+      lastRead: { account: iso(-26 * H), mentor: iso(-30 * D) },
     };
     const s: Session = {
       id: "s_somto_1",
       conversationId: c.id,
       mentorId: chiamaka.id,
-      parentId: c.parentId,
+      accountId: c.accountId,
       start: chiSlots[1].start,
       durationMin: 45,
       topic: "Preparing for the UCAT",
@@ -238,20 +265,20 @@ export function buildSeed(now = Date.now()): Db {
   {
     const c: Conversation = {
       id: "c_halima_chiamaka",
-      parentId: "u_halima",
+      accountId: "u_halima",
       mentorId: chiamaka.id,
       menteeName: "Amina",
       menteeAge: 14,
-      schoolYear: "Year 10",
+      stage: "Year 10",
       createdAt: iso(-16 * D),
       updatedAt: iso(-8 * D),
-      lastRead: { parent: iso(-8 * D), mentor: iso(-8 * D) },
+      lastRead: { account: iso(-8 * D), mentor: iso(-8 * D) },
     };
     const s: Session = {
       id: "s_amina_1",
       conversationId: c.id,
       mentorId: chiamaka.id,
-      parentId: c.parentId,
+      accountId: c.accountId,
       start: new Date(Math.floor((now - 10 * D) / H) * H).toISOString(),
       durationMin: 45,
       topic: "What it's like to be a paediatrician",
@@ -288,9 +315,137 @@ export function buildSeed(now = Date.now()): Db {
     });
   }
 
+  // 5. Bukky ↔ Tunde: an adult mentee's confirmed session
+  {
+    const c: Conversation = {
+      id: "c_bukky_tunde",
+      accountId: "u_bukky",
+      mentorId: tunde.id,
+      menteeName: "Bukola",
+      menteeAge: 23,
+      stage: "Recently graduated",
+      createdAt: iso(-6 * D),
+      updatedAt: iso(-26 * H),
+      lastRead: { account: iso(-26 * H), mentor: iso(-26 * H) },
+    };
+    const s: Session = {
+      id: "s_bukky_1",
+      conversationId: c.id,
+      mentorId: tunde.id,
+      accountId: c.accountId,
+      start: tundeSlots[1].start,
+      durationMin: 45,
+      topic: "Landing a first software role",
+      goals: "I graduated in Computer Science in July and I've sent 40 applications with two interviews. I'd love an honest look at my CV and some advice on technical interviews.",
+      status: "accepted",
+      createdAt: iso(-6 * D),
+      respondedAt: iso(-5 * D),
+    };
+    s.meetingUrl = meetingUrl(tunde, "Bukola", "s_bukky_1c4e7a");
+    conversations.push(c);
+    sessions.push(s);
+    msg({
+      conversationId: c.id,
+      senderId: "u_bukky",
+      kind: "request",
+      sessionId: s.id,
+      body: "Hi Tunde, I graduated in Computer Science from Manchester in July. I've sent about 40 applications for junior developer roles and had two interviews, both ending at the technical round. Could we look at my CV and talk about how to prepare? Thank you for doing this.",
+      createdAt: iso(-6 * D),
+    });
+    msg({ conversationId: c.id, senderId: "system", kind: "system", sessionId: s.id, body: "accepted", createdAt: iso(-5 * D) });
+    msg({
+      conversationId: c.id,
+      senderId: tunde.userId,
+      kind: "text",
+      body: "Hi Bukola, congratulations on graduating! Two technical rounds from 40 applications is better than you think. Send over your CV here before we meet, and bring one problem from an interview that tripped you up. We'll work through it together.",
+      createdAt: iso(-5 * D + 30 * 60_000),
+    });
+    msg({
+      conversationId: c.id,
+      senderId: "u_bukky",
+      kind: "text",
+      body: "Thank you so much! I've just updated it and I'll bring the linked-list question that got me last time 😅",
+      createdAt: iso(-26 * H),
+    });
+  }
+
+  // 6. Bukky ↔ Temi: pending, exploring a change of direction
+  {
+    const c: Conversation = {
+      id: "c_bukky_temi",
+      accountId: "u_bukky",
+      mentorId: temi.id,
+      menteeName: "Bukola",
+      menteeAge: 23,
+      stage: "Recently graduated",
+      createdAt: iso(-9 * H),
+      updatedAt: iso(-9 * H),
+      lastRead: { account: iso(-9 * H), mentor: iso(-30 * D) },
+    };
+    const s: Session = {
+      id: "s_bukky_2",
+      conversationId: c.id,
+      mentorId: temi.id,
+      accountId: c.accountId,
+      start: temiSlots[0].start,
+      durationMin: 45,
+      topic: "UX & product design",
+      goals: "I enjoyed the design side of my final-year project more than the coding. I'd like to understand whether product design could be a path for me.",
+      status: "pending",
+      createdAt: iso(-9 * H),
+    };
+    conversations.push(c);
+    sessions.push(s);
+    msg({
+      conversationId: c.id,
+      senderId: "u_bukky",
+      kind: "request",
+      sessionId: s.id,
+      body: "Hi Temi, I'm a recent Computer Science graduate. My favourite part of my final-year project was designing how people would actually use the app. I'm wondering whether product design could be a path for me, and how people move into it from tech.",
+      createdAt: iso(-9 * H),
+    });
+  }
+
+  // 7. Kunle ↔ Dr. Chiamaka: a medical student's request waiting on the mentor
+  {
+    const c: Conversation = {
+      id: "c_kunle_chiamaka",
+      accountId: "u_kunle",
+      mentorId: chiamaka.id,
+      menteeName: "Kunle",
+      menteeAge: 21,
+      stage: "At university",
+      createdAt: iso(-14 * H),
+      updatedAt: iso(-14 * H),
+      lastRead: { account: iso(-14 * H), mentor: iso(-30 * D) },
+    };
+    const s: Session = {
+      id: "s_kunle_1",
+      conversationId: c.id,
+      mentorId: chiamaka.id,
+      accountId: c.accountId,
+      start: chiSlots[2].start,
+      durationMin: 45,
+      topic: "Life as a junior doctor",
+      goals: "I'm in third year at King's and leaning towards paediatrics. I'd love to understand foundation training and how to make myself a strong applicant.",
+      status: "pending",
+      createdAt: iso(-14 * H),
+    };
+    conversations.push(c);
+    sessions.push(s);
+    msg({
+      conversationId: c.id,
+      senderId: "u_kunle",
+      kind: "request",
+      sessionId: s.id,
+      body: "Good evening Dr. Obi. I'm a third-year medical student at King's and I'm drawn to paediatrics. Nobody in my family is in medicine, so I'd really value hearing how you chose your specialty and what I should be doing now to prepare for foundation training.",
+      createdAt: iso(-14 * H),
+    });
+  }
+
   return {
     version: 1,
-    users: [...admins, ...parents, ...mentorUsers],
+    users: [...admins, ...parents, ...adults, ...mentorUsers],
     mentors,
     conversations,
     messages,

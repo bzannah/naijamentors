@@ -24,7 +24,7 @@ const STATUS: Record<SessionStatus, { label: string; cls: string }> = {
   cancelled: { label: "Cancelled", cls: "bg-paper-2 text-ink-3" },
 };
 
-export function ConversationList({ items, role }: { items: ListItem[]; role: "parent" | "mentor" }) {
+export function ConversationList({ items, side }: { items: ListItem[]; side: "account" | "mentor" }) {
   const pathname = usePathname();
   const activeId = pathname.split("/")[2];
 
@@ -38,7 +38,7 @@ export function ConversationList({ items, role }: { items: ListItem[]; role: "pa
       <div className="border-b border-line px-6 pt-6 pb-5">
         <h1 className="font-display text-[2rem] leading-none tracking-[-0.03em]">Messages</h1>
         <p className="mt-2 text-[0.85rem] text-ink-3">
-          {role === "parent" ? "Your conversations with mentors" : "Requests and messages from families"}
+          {side === "account" ? "Your conversations with mentors" : "Requests and messages from mentees and families"}
         </p>
       </div>
       <div className="thin-scroll flex-1 overflow-y-auto p-2.5">
@@ -46,9 +46,9 @@ export function ConversationList({ items, role }: { items: ListItem[]; role: "pa
           <div className="px-5 py-12 text-center">
             <p className="font-display text-xl">No conversations yet</p>
             <p className="mt-2 text-[0.9rem] text-ink-3">
-              {role === "parent" ? "Request a session with a mentor to start one." : "When a family requests a session, it'll appear here."}
+              {side === "account" ? "Request a session with a mentor to start one." : "When someone requests a session, it'll appear here."}
             </p>
-            {role === "parent" && (
+            {side === "account" && (
               <Link href="/mentors" className="mt-5 inline-flex h-10 items-center rounded-full bg-forest px-5 text-[0.88rem] font-semibold text-paper">
                 Find a mentor
               </Link>

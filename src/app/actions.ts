@@ -12,10 +12,11 @@ import { fromMentor } from "@/lib/db/mappers";
 import { conversations, mentors, messages, sessions, users } from "@/lib/db/schema";
 import { FIELDS } from "@/lib/fields";
 import { notifySessionCancelled, notifySessionRequested, notifySessionResponded } from "@/lib/notifications";
+import { canBook, MENTEE_AGES, schoolYearForAge, STAGES } from "@/lib/mentees";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { accessibleConversation, getMentorById, slotsFor } from "@/lib/queries";
-import { DEMO_MENTOR_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
-import type { FieldKey, Mentor, WeeklySlot } from "@/lib/types";
+import { DEMO_MENTEE_EMAIL, DEMO_MENTOR_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
+import type { FieldKey, Mentee, Mentor, WeeklySlot } from "@/lib/types";
 
 export type FormState = { error?: string; field?: string } | undefined;
 
@@ -40,12 +41,12 @@ export async function signIn(_: FormState, fd: FormData): Promise<FormState> {
   }
   await startSession(user.id);
   refreshAll();
-  redirect(safeNext(str(fd, "next"), user.role === "parent" ? "/mentors" : homeFor(user.role)));
+  redirect(safeNext(str(fd, "next"), canBook(user.role) ? "/mentors" : homeFor(user.role)));
 }
 
 export async function demoSignIn(fd: FormData) {
   const who = str(fd, "who");
-  const email = who === "mentor" ? DEMO_MENTOR_EMAIL : DEMO_PARENT_EMAIL;
+  const email = who === "mentor" ? DEMO_MENTOR_EMAIL : who === "mentee" ? DEMO_MENTEE_EMAIL : DEMO_PARENT_EMAIL;
   const user = await findUserByEmail(email);
   if (!user) redirect("/signin");
   await startSession(user.id);
@@ -53,17 +54,39 @@ export async function demoSignIn(fd: FormData) {
   redirect(safeNext(str(fd, "next"), "/dashboard"));
 }
 
+/** Mentees aged 18+ sign up for themselves; parents and guardians sign up for 11 to 17-year-olds. */
 export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
+  const role = str(fd, "as") === "mentee" ? "mentee" : "parent";
   const name = str(fd, "name");
   const email = str(fd, "email").toLowerCase();
   const password = str(fd, "password");
-  const childName = str(fd, "childName");
-  const childAge = Number(str(fd, "childAge"));
   const city = str(fd, "city");
 
   if (name.length < 2) return { error: "Please tell us your name.", field: "name" };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Please enter a valid email address.", field: "email" };
   if (password.length < 8) return { error: "Your password needs at least 8 characters.", field: "password" };
+
+  let mentees: Mentee[] = [];
+  if (role === "mentee") {
+    const age = Number(str(fd, "age"));
+    const stage = str(fd, "stage");
+    if (!age || age < MENTEE_AGES.adult || age > MENTEE_AGES.max)
+      return {
+        error: `Mentee accounts are for ages ${MENTEE_AGES.adult} to ${MENTEE_AGES.max}. Under 18? Ask a parent or guardian to join for you.`,
+        field: "age",
+      };
+    if (!STAGES.includes(stage)) return { error: "Tell us where you are right now.", field: "stage" };
+    mentees = [{ name: name.split(/\s+/)[0], age, stage }];
+  } else {
+    const childName = str(fd, "childName");
+    const childAge = Number(str(fd, "childAge"));
+    if (childName && childAge) {
+      if (childAge < MENTEE_AGES.min || childAge >= MENTEE_AGES.adult)
+        return { error: "Parent accounts are for children aged 11 to 17. From 18, young people join with their own account.", field: "childAge" };
+      mentees = [{ name: childName, age: childAge, stage: schoolYearForAge(childAge) }];
+    }
+  }
+
   const taken = { error: "There's already an account with that email. Try signing in.", field: "email" };
   if (await findUserByEmail(email)) return taken;
 
@@ -71,15 +94,12 @@ export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
   try {
     await (await getDb()).insert(users).values({
       id,
-      role: "parent",
+      role,
       name,
       email,
       city: city || null,
       passwordHash: hashPassword(password),
-      children:
-        childName && childAge
-          ? [{ name: childName, age: childAge, schoolYear: schoolYearForAge(childAge) }]
-          : [],
+      mentees,
     });
   } catch (err) {
     if (isUniqueViolation(err, "users_email_key")) return taken;
@@ -96,33 +116,40 @@ export async function signOut() {
   redirect("/");
 }
 
-function schoolYearForAge(age: number) {
-  // Age at the start of the school year → English school year.
-  const year = Math.min(13, Math.max(7, age - 4));
-  return `Year ${year}`;
-}
-
 /* ---------------- Requests & messaging ---------------- */
 
 export async function requestSession(_: FormState, fd: FormData): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return { error: "signin" };
-  if (user.role !== "parent") return { error: "Only parent accounts can request sessions." };
+  if (!canBook(user.role)) return { error: "Sessions are requested from mentee and parent accounts." };
 
   const mentorId = str(fd, "mentorId");
   const start = str(fd, "start");
-  const menteeName = str(fd, "menteeName");
-  const menteeAge = Number(str(fd, "menteeAge"));
   const topic = str(fd, "topic");
   const message = str(fd, "message");
   const consent = fd.get("consent") === "on";
+  const self = user.role === "mentee";
 
-  if (!menteeName) return { error: "Please tell us your child's first name.", field: "menteeName" };
-  if (!menteeAge || menteeAge < 11 || menteeAge > 18)
-    return { error: "Village mentors work with young people aged 11 to 18.", field: "menteeAge" };
+  let mentee: Mentee;
+  if (self) {
+    // Adults book for themselves, as described on their account.
+    const me = user.mentees?.[0];
+    if (!me) return { error: "We're missing your age and stage. Please contact us so we can fix your account." };
+    mentee = me;
+  } else {
+    const name = str(fd, "menteeName");
+    const age = Number(str(fd, "menteeAge"));
+    if (!name) return { error: "Please tell us your child's first name.", field: "menteeName" };
+    if (!age || age < MENTEE_AGES.min || age >= MENTEE_AGES.adult)
+      return { error: "Parent accounts book for 11 to 17-year-olds. From 18, young people book with their own account.", field: "menteeAge" };
+    mentee = { name, age, stage: schoolYearForAge(age) };
+  }
   if (!topic) return { error: "Choose what you'd like the session to focus on.", field: "topic" };
   if (message.length < 20)
-    return { error: "Add a short note so the mentor knows a little about your child (at least 20 characters).", field: "message" };
+    return {
+      error: `Add a short note so the mentor knows a little about ${self ? "you" : "your child"} (at least 20 characters).`,
+      field: "message",
+    };
   if (!consent) return { error: "Please confirm the safeguarding commitments.", field: "consent" };
 
   const mentor = await getMentorById(mentorId);
@@ -140,9 +167,9 @@ export async function requestSession(_: FormState, fd: FormData): Promise<FormSt
         .from(conversations)
         .where(
           and(
-            eq(conversations.parentId, user.id),
+            eq(conversations.accountId, user.id),
             eq(conversations.mentorId, mentor.id),
-            sql`lower(${conversations.menteeName}) = ${menteeName.toLowerCase()}`,
+            sql`lower(${conversations.menteeName}) = ${mentee.name.toLowerCase()}`,
           ),
         )
         .limit(1);
@@ -151,14 +178,14 @@ export async function requestSession(_: FormState, fd: FormData): Promise<FormSt
           .insert(conversations)
           .values({
             id: newId("c"),
-            parentId: user.id,
+            accountId: user.id,
             mentorId: mentor.id,
-            menteeName,
-            menteeAge,
-            schoolYear: schoolYearForAge(menteeAge),
+            menteeName: mentee.name,
+            menteeAge: mentee.age,
+            stage: mentee.stage,
             createdAt: now,
             updatedAt: now,
-            lastReadParent: now,
+            lastReadAccount: now,
             lastReadMentor: new Date(0).toISOString(),
           })
           .returning({ id: conversations.id });
@@ -168,7 +195,7 @@ export async function requestSession(_: FormState, fd: FormData): Promise<FormSt
         id: sessionId,
         conversationId: conv.id,
         mentorId: mentor.id,
-        parentId: user.id,
+        accountId: user.id,
         start,
         durationMin: mentor.sessionLength,
         topic,
@@ -185,7 +212,7 @@ export async function requestSession(_: FormState, fd: FormData): Promise<FormSt
         sessionId,
         createdAt: now,
       });
-      await tx.update(conversations).set({ updatedAt: now, lastReadParent: now }).where(eq(conversations.id, conv.id));
+      await tx.update(conversations).set({ updatedAt: now, lastReadAccount: now }).where(eq(conversations.id, conv.id));
       return conv.id;
     });
   } catch (err) {
@@ -209,7 +236,7 @@ export async function sendMessage(conversationId: string, body: string) {
     await tx.insert(messages).values({ id: newId("msg"), conversationId, senderId: user.id, kind: "text", body: text.slice(0, 4000), createdAt: now });
     await tx
       .update(conversations)
-      .set(user.role === "parent" ? { updatedAt: now, lastReadParent: now } : { updatedAt: now, lastReadMentor: now })
+      .set(user.role === "mentor" ? { updatedAt: now, lastReadMentor: now } : { updatedAt: now, lastReadAccount: now })
       .where(eq(conversations.id, conversationId));
   });
   refreshAll();
@@ -284,7 +311,7 @@ export async function cancelSession(sessionId: string) {
     return true;
   });
 
-  if (ok) after(() => notifySessionCancelled(sessionId, user.role === "parent" ? "parent" : "mentor"));
+  if (ok) after(() => notifySessionCancelled(sessionId, user.role === "mentor" ? "mentor" : "account"));
   refreshAll();
   return { ok };
 }
@@ -293,11 +320,11 @@ export async function markRead(conversationId: string) {
   const user = await getCurrentUser();
   if (!user || user.role === "admin") return;
   if (!(await accessibleConversation(user, conversationId))) return;
-  const lastRead = user.role === "parent" ? conversations.lastReadParent : conversations.lastReadMentor;
+  const lastRead = user.role === "mentor" ? conversations.lastReadMentor : conversations.lastReadAccount;
   // Only write when there's something newer than the last read marker.
   const updated = await (await getDb())
     .update(conversations)
-    .set(user.role === "parent" ? { lastReadParent: new Date().toISOString() } : { lastReadMentor: new Date().toISOString() })
+    .set(user.role === "mentor" ? { lastReadMentor: new Date().toISOString() } : { lastReadAccount: new Date().toISOString() })
     .where(
       and(
         eq(conversations.id, conversationId),
@@ -355,10 +382,10 @@ export async function applyAsMentor(_: FormState, fd: FormData): Promise<FormSta
   if (!firstName || !lastName) return { error: "Please add your full name.", field: "firstName" };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Please enter a valid email address.", field: "email" };
   if (password.length < 8) return { error: "Choose a password with at least 8 characters.", field: "password" };
-  if (!role || !org) return { error: "Tell families what you do and where.", field: "role" };
+  if (!role || !org) return { error: "Tell mentees what you do and where.", field: "role" };
   if (!FIELDS.some((f) => f.key === field)) return { error: "Pick the field that best describes your work.", field: "field" };
-  if (bio.length < 60) return { error: "Your bio helps parents choose. Please write at least a couple of sentences.", field: "bio" };
-  if (fd.get("pledge") !== "on") return { error: "Please accept the Village mentor pledge.", field: "pledge" };
+  if (bio.length < 60) return { error: "Your bio helps people choose. Please write at least a couple of sentences.", field: "bio" };
+  if (fd.get("pledge") !== "on") return { error: "Please accept the mentor pledge.", field: "pledge" };
 
   const emailTaken = { error: "There's already an account with that email.", field: "email" };
   if (await findUserByEmail(email)) return emailTaken;
@@ -415,10 +442,10 @@ export async function applyAsMentor(_: FormState, fd: FormData): Promise<FormSta
     quote: quote || "",
     photo,
     sessionLength: 45,
-    ageGroups: ageGroups.length ? ageGroups : ["14–16", "17–18"],
+    ageGroups: ageGroups.length ? ageGroups : ["17–18", "19–24"],
     availability,
     verified: { dbs: false, id: false, references: false },
-    replies: "New to Village",
+    replies: "New to Naija Mentors",
     joined: now,
     status: "pending",
   };

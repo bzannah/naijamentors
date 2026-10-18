@@ -2,17 +2,19 @@
 
 import { startTransition, useActionState, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Clock, Loader2, ShieldCheck, Sparkles, Video } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, Loader2, Sparkles, Users, Video } from "lucide-react";
 import { demoSignIn, requestSession, type FormState } from "@/app/actions";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { ageSpan, canBook, MENTEE_AGES } from "@/lib/mentees";
 import { fmtDateLong, fmtDayNum, fmtMonth, fmtTime, fmtWeekday, type Slot } from "@/lib/time";
-import type { Child, Role } from "@/lib/types";
+import type { Mentee, Role } from "@/lib/types";
 
 type Props = {
-  mentor: { id: string; slug: string; firstName: string; displayName: string; sessionLength: number; specialities: string[] };
+  mentor: { id: string; slug: string; firstName: string; displayName: string; sessionLength: number; specialities: string[]; ageGroups: string[] };
   slots: Slot[];
-  viewer: { role: Role; children: Child[] } | null;
+  /** mentees: a parent's children, or an adult mentee's own details. */
+  viewer: { role: Role; mentees: Mentee[] } | null;
   initialSlot?: string;
 };
 
@@ -119,15 +121,15 @@ export function BookingPanel({ mentor, slots, viewer, initialSlot }: Props) {
 
           <button
             type="button"
-            disabled={!start || (viewer != null && viewer.role !== "parent")}
+            disabled={!start || (viewer != null && !canBook(viewer.role))}
             onClick={() => setStep("details")}
             className={buttonClasses({ size: "lg", className: "mt-5 w-full" })}
           >
             {start ? "Continue" : "Pick a time to continue"}
           </button>
-          {viewer && viewer.role !== "parent" && (
+          {viewer && !canBook(viewer.role) && (
             <p className="mt-3 text-center text-[0.82rem] text-ink-3">
-              You&rsquo;re signed in as {viewer.role === "admin" ? "an admin" : "a mentor"}. Parents request sessions here.
+              You&rsquo;re signed in as {viewer.role === "admin" ? "an admin" : "a mentor"}. Mentees and parents request sessions here.
             </p>
           )}
         </div>
@@ -135,6 +137,7 @@ export function BookingPanel({ mentor, slots, viewer, initialSlot }: Props) {
         <SignInPrompt mentor={mentor} start={start} onBack={() => setStep("time")} />
       ) : (
         <form
+          noValidate
           className="animate-fade-up"
           onSubmit={(e) => {
             // Submit manually so React doesn't reset the fields when validation fails.
@@ -166,7 +169,7 @@ export function BookingPanel({ mentor, slots, viewer, initialSlot }: Props) {
           <button disabled={pending} className={buttonClasses({ size: "lg", className: "mt-5 w-full" })}>
             {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Send request to {mentor.firstName}</>}
           </button>
-          <p className="mt-3 text-center text-[0.78rem] text-ink-3">Free, always. {mentor.firstName} will reply in your Village inbox.</p>
+          <p className="mt-3 text-center text-[0.78rem] text-ink-3">Free, always. {mentor.firstName} will reply in your Naija Mentors inbox.</p>
         </form>
       )}
     </PanelShell>
@@ -190,9 +193,11 @@ function PanelShell({ mentor, children }: { mentor: Props["mentor"]; children: R
             <span className="flex items-center gap-1.5">
               <Video className="h-4 w-4 text-ink-3" /> Video call
             </span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4 text-ink-3" /> Parent welcome
-            </span>
+            {mentor.ageGroups.length > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Users className="h-4 w-4 text-ink-3" /> Ages {ageSpan(mentor.ageGroups)}
+              </span>
+            )}
           </div>
         </div>
         {children}
@@ -202,14 +207,34 @@ function PanelShell({ mentor, children }: { mentor: Props["mentor"]; children: R
 }
 
 function DetailsFields({ viewer, mentor, state }: { viewer: NonNullable<Props["viewer"]>; mentor: Props["mentor"]; state: FormState }) {
-  const kids = viewer.children;
+  // Mentees aged 18+ book for themselves; parents choose which child the session is for.
+  const self = viewer.role === "mentee";
+  const me = self ? viewer.mentees[0] : undefined;
+  const kids = self ? [] : viewer.mentees.filter((k) => k.age < MENTEE_AGES.adult);
   const [childIdx, setChildIdx] = useState(kids.length ? 0 : -1);
   const child = childIdx >= 0 ? kids[childIdx] : null;
-  const topics = [...mentor.specialities, "General career chat", "Confidence & identity", "Something else"];
+  const topics = [
+    ...mentor.specialities,
+    ...(self ? ["Applications & interviews", "Navigating the workplace"] : []),
+    "General career chat",
+    "Confidence & identity",
+    "Something else",
+  ];
   const err = (f: string) => state?.field === f;
 
   return (
     <div className="mt-5 space-y-4">
+      {self ? (
+        <div className="flex items-center gap-3 rounded-2xl bg-paper-2/70 p-3.5">
+          <span className="font-display flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-clay-soft to-gold-soft text-[1.05rem] text-clay italic">
+            {me?.name[0]}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[0.88rem] font-semibold">This session is for you</p>
+            <p className="truncate text-[0.82rem] text-ink-3">{me ? `${me.name}, ${me.age} · ${me.stage}` : "Your details are on your account"}</p>
+          </div>
+        </div>
+      ) : (
       <fieldset>
         <legend className="mb-2 text-[0.85rem] font-semibold">Who is the session for?</legend>
         {kids.length > 0 && (
@@ -244,13 +269,21 @@ function DetailsFields({ viewer, mentor, state }: { viewer: NonNullable<Props["v
         ) : (
           <div className="grid grid-cols-[1fr_96px] gap-2">
             <input name="menteeName" placeholder="Child's first name" className={cn("field", err("menteeName") && "!border-clay")} />
-            <input name="menteeAge" type="number" min={11} max={18} placeholder="Age" className={cn("field", err("menteeAge") && "!border-clay")} />
+            <input
+              name="menteeAge"
+              type="number"
+              min={MENTEE_AGES.min}
+              max={MENTEE_AGES.adult - 1}
+              placeholder="Age"
+              className={cn("field", err("menteeAge") && "!border-clay")}
+            />
           </div>
         )}
       </fieldset>
+      )}
 
       <label className="block">
-        <span className="mb-2 block text-[0.85rem] font-semibold">What would they like to focus on?</span>
+        <span className="mb-2 block text-[0.85rem] font-semibold">What would {self ? "you" : "they"} like to focus on?</span>
         <select name="topic" defaultValue={mentor.specialities[0]} className={cn("field", err("topic") && "!border-clay")}>
           {topics.map((t) => (
             <option key={t}>{t}</option>
@@ -263,20 +296,34 @@ function DetailsFields({ viewer, mentor, state }: { viewer: NonNullable<Props["v
         <textarea
           name="message"
           rows={5}
-          placeholder={`What does ${child?.name ?? "your child"} love? What are they unsure about? What would make this session a success?`}
+          placeholder={
+            self
+              ? "Where are you now, where would you like to get to, and what would make this session worth it?"
+              : `What does ${child?.name ?? "your child"} love? What are they unsure about? What would make this session a success?`
+          }
           className={cn("field", err("message") && "!border-clay")}
         />
       </label>
 
       <label className={cn("flex cursor-pointer gap-3 rounded-2xl bg-paper-2/70 p-4 text-[0.85rem] leading-snug text-ink-2", err("consent") && "ring-1 ring-clay")}>
         <input type="checkbox" name="consent" className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-forest)]" />
-        <span>
-          I&rsquo;ll be nearby during the session, and we&rsquo;ve read the{" "}
-          <Link href="/guide" target="_blank" className="font-semibold text-forest underline decoration-gold underline-offset-2">
-            Village guide
-          </Link>{" "}
-          together.
-        </span>
+        {self ? (
+          <span>
+            I&rsquo;ve read the{" "}
+            <Link href="/guide#mentees" target="_blank" className="font-semibold text-forest underline decoration-gold underline-offset-2">
+              Naija Mentors guide
+            </Link>
+            , and I&rsquo;ll keep every conversation with my mentor on Naija Mentors.
+          </span>
+        ) : (
+          <span>
+            I&rsquo;ll be nearby during the session, and we&rsquo;ve read the{" "}
+            <Link href="/guide" target="_blank" className="font-semibold text-forest underline decoration-gold underline-offset-2">
+              Naija Mentors guide
+            </Link>{" "}
+            together.
+          </span>
+        )}
       </label>
     </div>
   );
@@ -292,24 +339,34 @@ function SignInPrompt({ mentor, start, onBack }: { mentor: Props["mentor"]; star
       <div className="mt-3 rounded-2xl bg-paper-2/70 p-5">
         <p className="font-display text-[1.35rem] leading-snug">One quick step.</p>
         <p className="mt-2 text-[0.9rem] leading-relaxed text-ink-2">
-          Requests come from a parent or guardian account, so you stay in the loop for every message. It takes less than a
-          minute and it&rsquo;s free.
+          Create a free account to send your request. From 18 you book for yourself; under-18s are booked by a parent, who
+          sees every message. It takes less than a minute.
         </p>
       </div>
       <div className="mt-5 grid gap-2.5">
-        <Link href={`/signup?next=${encodeURIComponent(next)}`} className={buttonClasses({ size: "lg", className: "w-full" })}>
-          Create a free parent account
+        <Link href={`/signup?as=mentee&next=${encodeURIComponent(next)}`} className={buttonClasses({ size: "lg", className: "w-full" })}>
+          I&rsquo;m {MENTEE_AGES.adult}–{MENTEE_AGES.max}: create my account
         </Link>
-        <Link href={`/signin?next=${encodeURIComponent(next)}`} className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full" })}>
+        <Link href={`/signup?as=parent&next=${encodeURIComponent(next)}`} className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full" })}>
+          I&rsquo;m a parent of an {MENTEE_AGES.min}–{MENTEE_AGES.adult - 1}-year-old
+        </Link>
+        <Link
+          href={`/signin?next=${encodeURIComponent(next)}`}
+          className="w-full rounded-full py-2.5 text-center text-[0.88rem] font-semibold text-ink-2 transition hover:text-ink"
+        >
           I already have an account
         </Link>
-        <form action={demoSignIn}>
-          <input type="hidden" name="who" value="parent" />
-          <input type="hidden" name="next" value={next} />
-          <button className="w-full rounded-full py-3 text-[0.85rem] font-semibold text-forest underline decoration-gold decoration-2 underline-offset-4 hover:text-forest-3">
-            Just exploring? Continue as a demo parent
-          </button>
-        </form>
+        <div className="flex items-center justify-center gap-1.5 text-[0.82rem] text-ink-3">
+          Just exploring? Try a demo
+          {(["mentee", "parent"] as const).map((who, i) => (
+            <form key={who} action={demoSignIn} className="contents">
+              <input type="hidden" name="who" value={who} />
+              <input type="hidden" name="next" value={next} />
+              {i > 0 && <span aria-hidden>·</span>}
+              <button className="font-semibold text-forest underline decoration-gold decoration-2 underline-offset-4 hover:text-forest-3">{who}</button>
+            </form>
+          ))}
+        </div>
       </div>
     </div>
   );

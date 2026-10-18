@@ -49,20 +49,25 @@ export type SessionCardData = {
   past: boolean;
 };
 
+/** Which side of the conversation: the mentee's account (a parent or an adult mentee) or the mentor. */
+type Side = "account" | "mentor";
+type Mentee = { name: string; age: number; stage: string };
+
 type Props = {
   conversationId: string;
-  viewer: { id: string; role: "parent" | "mentor" };
+  viewer: { id: string; side: Side };
   header: { name: string; photo?: string; subtitle: string; href?: string };
-  mentee: { name: string; age: number; schoolYear: string };
+  mentee: Mentee;
   mentor: { userId: string; firstName: string; displayName: string; short: string; replies: string };
-  parent: { id: string; firstName: string; name: string; city?: string };
+  /** self: the mentee is 18+ and holds the account, so they speak for themselves. */
+  account: { id: string; firstName: string; self: boolean };
   messages: ThreadMessage[];
   sessions: Record<string, SessionCardData>;
   justSent: boolean;
 };
 
 export function ThreadView(props: Props) {
-  const { conversationId, viewer, header, mentee, mentor, parent, sessions } = props;
+  const { conversationId, viewer, header, mentee, mentor, account, sessions } = props;
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showSent, setShowSent] = useState(props.justSent);
@@ -110,7 +115,7 @@ export function ThreadView(props: Props) {
     });
   };
 
-  const nameOf = (id: string) => (id === mentor.userId ? mentor.short : id === parent.id ? parent.firstName : "");
+  const nameOf = (id: string) => (id === mentor.userId ? mentor.short : id === account.id ? account.firstName : "");
   const lastFromOther = [...messages].reverse().find((m) => m.kind !== "system")?.senderId !== viewer.id;
 
   return (
@@ -130,9 +135,11 @@ export function ThreadView(props: Props) {
             View profile
           </Link>
         ) : (
-          <span className="hidden items-center gap-2 rounded-full bg-gold-soft px-3.5 py-2 text-[0.8rem] font-semibold text-[#7c5e1f] sm:flex">
-            Mentee: {mentee.name}, {mentee.age} · {mentee.schoolYear}
-          </span>
+          !account.self && (
+            <span className="hidden items-center gap-2 rounded-full bg-gold-soft px-3.5 py-2 text-[0.8rem] font-semibold text-[#7c5e1f] sm:flex">
+              Mentee: {mentee.name}, {mentee.age} · {mentee.stage}
+            </span>
+          )
         )}
       </div>
 
@@ -165,7 +172,7 @@ export function ThreadView(props: Props) {
                   </div>
                 )}
                 {m.kind === "system" ? (
-                  <SystemNote body={m.body} session={m.sessionId ? sessions[m.sessionId] : undefined} mentor={mentor.short} parent={parent.firstName} />
+                  <SystemNote body={m.body} session={m.sessionId ? sessions[m.sessionId] : undefined} mentor={mentor.short} account={account.firstName} />
                 ) : m.kind === "request" && m.sessionId && sessions[m.sessionId] ? (
                   <RequestCard
                     session={sessions[m.sessionId]}
@@ -173,9 +180,9 @@ export function ThreadView(props: Props) {
                     mine={mine}
                     from={nameOf(m.senderId)}
                     time={m.time}
-                    viewer={viewer.role}
+                    viewer={viewer.side}
                     mentee={mentee}
-                    parentFirst={parent.firstName}
+                    account={account}
                     mentorShort={mentor.short}
                   />
                 ) : (
@@ -189,17 +196,29 @@ export function ThreadView(props: Props) {
 
       <Composer
         onSend={send}
-        role={viewer.role}
-        suggestions={
-          viewer.role === "mentor" && lastFromOther
-            ? [`Thank you, ${parent.firstName}! Looking forward to meeting ${mentee.name}.`, `${mentee.name} could jot down three questions before we meet.`, "Could we find another time that works?"]
-            : viewer.role === "parent" && lastFromOther
-              ? ["Thank you so much!", `${mentee.name} is really looking forward to it.`, "Could we reschedule?"]
-              : []
+        note={
+          viewer.side === "mentor"
+            ? account.self
+              ? "Keep this conversation on Naija Mentors. Please don’t share phone numbers or social media here."
+              : "Messages are shared with the parent account. Please don’t share phone numbers or social media here."
+            : account.self
+              ? "Mentors never need your phone number or social media. Keep everything on Naija Mentors."
+              : "Mentors never need your phone number or your child’s social media. Keep everything on Naija Mentors."
         }
+        suggestions={!lastFromOther ? [] : suggestionsFor(viewer.side, mentee, account)}
       />
     </div>
   );
+}
+
+function suggestionsFor(side: Side, mentee: Mentee, account: Props["account"]) {
+  if (side === "mentor")
+    return account.self
+      ? [`Thank you, ${account.firstName}! Looking forward to meeting you.`, "Jot down three questions before we meet.", "Could we find another time that works?"]
+      : [`Thank you, ${account.firstName}! Looking forward to meeting ${mentee.name}.`, `${mentee.name} could jot down three questions before we meet.`, "Could we find another time that works?"];
+  return account.self
+    ? ["Thank you so much!", "I’m really looking forward to it.", "Could we reschedule?"]
+    : ["Thank you so much!", `${mentee.name} is really looking forward to it.`, "Could we reschedule?"];
 }
 
 function Bubble({ mine, grouped, text, time, avatar }: { mine: boolean; grouped: boolean; text: string; time: string; avatar?: { name: string; photo?: string } }) {
@@ -221,7 +240,7 @@ function Bubble({ mine, grouped, text, time, avatar }: { mine: boolean; grouped:
   );
 }
 
-function SystemNote({ body, session, mentor, parent }: { body: string; session?: SessionCardData; mentor: string; parent: string }) {
+function SystemNote({ body, session, mentor, account }: { body: string; session?: SessionCardData; mentor: string; account: string }) {
   const [kind, who] = body.split(":");
   const text =
     kind === "accepted"
@@ -229,7 +248,7 @@ function SystemNote({ body, session, mentor, parent }: { body: string; session?:
       : kind === "declined"
         ? `${mentor} couldn’t make that time`
         : kind === "cancelled"
-          ? `${who === "mentor" ? mentor : parent} cancelled the session`
+          ? `${who === "mentor" ? mentor : account} cancelled the session`
           : body;
   const Icon = kind === "accepted" ? CalendarCheck : CalendarX;
   return (
@@ -262,7 +281,7 @@ function RequestCard({
   time,
   viewer,
   mentee,
-  parentFirst,
+  account,
   mentorShort,
 }: {
   session: SessionCardData;
@@ -270,9 +289,9 @@ function RequestCard({
   mine: boolean;
   from: string;
   time: string;
-  viewer: "parent" | "mentor";
-  mentee: { name: string; age: number; schoolYear: string };
-  parentFirst: string;
+  viewer: Side;
+  mentee: Mentee;
+  account: Props["account"];
   mentorShort: string;
 }) {
   const router = useRouter();
@@ -284,11 +303,13 @@ function RequestCard({
 
   const open = (m: "accept" | "decline") => {
     const when = s.relDay === "Today" || s.relDay === "Tomorrow" ? s.relDay.toLowerCase() : s.dateLong;
+    const on = when === "today" || when === "tomorrow" ? when : `on ${when}`;
+    const them = account.self ? "you" : mentee.name;
     setMode(m);
     setReply(
       m === "accept"
-        ? `Hello ${parentFirst}, thank you for reaching out! I'd love to meet ${mentee.name}. See you both ${when === "today" || when === "tomorrow" ? when : `on ${when}`} at ${s.time}. No preparation needed, but questions are always welcome.`
-        : `Hello ${parentFirst}, thank you for thinking of me. Unfortunately I can't make ${when} at ${s.time}. Please do pick another time from my calendar and I'll be glad to meet ${mentee.name}.`,
+        ? `Hello ${account.firstName}, thank you for reaching out! I'd love to meet ${them}. See you${account.self ? "" : " both"} ${on} at ${s.time}. No preparation needed, but questions are always welcome.`
+        : `Hello ${account.firstName}, thank you for thinking of me. Unfortunately I can't make ${when} at ${s.time}. Please do pick another time from my calendar and I'll be glad to meet ${them}.`,
     );
   };
 
@@ -335,7 +356,7 @@ function RequestCard({
           <div className="mt-4 rounded-2xl bg-paper-2/70 p-4">
             <p className="text-[0.92rem] leading-relaxed whitespace-pre-wrap text-ink-2">{note}</p>
             <p className="mt-2 text-[0.75rem] text-ink-4">
-              {from} · for {mentee.name}, {mentee.age} · {time}
+              {account.self ? `${from} · ${mentee.age} · ${mentee.stage}` : `${from} · for ${mentee.name}, ${mentee.age}`} · {time}
             </p>
           </div>
 
@@ -375,7 +396,7 @@ function RequestCard({
             </div>
           )}
 
-          {s.status === "pending" && viewer === "parent" && (
+          {s.status === "pending" && viewer === "account" && (
             <div className="mt-4 flex items-center justify-between gap-3 text-[0.85rem]">
               <span className="flex items-center gap-2 text-ink-3">
                 <span className="relative flex h-2 w-2">
@@ -419,7 +440,7 @@ function RequestCard({
   );
 }
 
-function Composer({ onSend, role, suggestions }: { onSend: (t: string) => void; role: "parent" | "mentor"; suggestions: string[] }) {
+function Composer({ onSend, note, suggestions }: { onSend: (t: string) => void; note: string; suggestions: string[] }) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -480,10 +501,8 @@ function Composer({ onSend, role, suggestions }: { onSend: (t: string) => void; 
         </button>
       </form>
       <p className="mx-auto mt-2 flex max-w-3xl items-center gap-1.5 px-2 text-[0.72rem] text-ink-4">
-        <ShieldCheck className="h-3.5 w-3.5" />
-        {role === "mentor"
-          ? "Messages are shared with the parent account. Keep phone numbers and social media off Village."
-          : "Mentors never need your phone number or your child’s social media. Keep everything on Village."}
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+        {note}
       </p>
     </div>
   );

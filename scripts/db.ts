@@ -52,7 +52,7 @@ async function main() {
 
       case "create-admin": {
         const [email, ...nameParts] = args;
-        const name = nameParts.join(" ").trim() || "Village Team";
+        const name = nameParts.join(" ").trim() || "Naija Mentors Team";
         if (!email || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Usage: npm run db:create-admin -- <email> [full name]");
         const { hashPassword } = await import("../src/lib/password");
         const { users } = await import("../src/lib/db/schema");

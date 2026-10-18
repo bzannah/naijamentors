@@ -51,7 +51,7 @@ export default async function AdminPage() {
       <section className="grain relative overflow-hidden border-b border-line bg-paper-2/60">
         <AdirePattern className="text-gold opacity-[0.1] [mask-image:linear-gradient(90deg,transparent_45%,#000)]" size={46} />
         <div className="relative mx-auto max-w-[1320px] px-5 pt-12 pb-12 sm:px-8 sm:pt-16">
-          <p className="eyebrow text-clay">Village team · Mentor verification</p>
+          <p className="eyebrow text-clay">Naija Mentors team · Mentor verification</p>
           <h1 className="font-display mt-3 text-[clamp(2.6rem,5.6vw,4.6rem)] leading-[1] tracking-[-0.04em]">
             Keep the village <em className="text-forest-3">safe.</em>
           </h1>

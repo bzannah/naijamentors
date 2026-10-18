@@ -9,7 +9,7 @@ import { ApplyForm } from "./ApplyForm";
 
 export const metadata: Metadata = {
   title: "Become a mentor",
-  description: "Give 45 minutes a month to a British-Nigerian teenager who needs to see what's possible.",
+  description: "Give 45 minutes a month to a young British-Nigerian who needs to see what's possible.",
 };
 
 export default async function BecomeAMentor() {
@@ -30,8 +30,8 @@ export default async function BecomeAMentor() {
               You are someone&rsquo;s <em className="text-forest-3">proof.</em>
             </h1>
             <p className="animate-fade-up mt-7 max-w-xl text-[1.15rem] leading-relaxed text-ink-2" style={{ animationDelay: "160ms" }}>
-              Somewhere in Britain, a teenager who looks like you, sounds like you and eats jollof like you is quietly wondering
-              whether people like them become people like you. Forty-five minutes a month is all it takes to answer.
+              Somewhere in Britain, a teenager or a graduate who looks like you, sounds like you and eats jollof like you is quietly
+              wondering whether people like them become people like you. Forty-five minutes a month is all it takes to answer.
             </p>
             <div className="animate-fade-up mt-9 flex flex-wrap items-center gap-4" style={{ animationDelay: "240ms" }}>
               <ButtonLink href="#apply" size="lg" arrow>
@@ -89,8 +89,8 @@ export default async function BecomeAMentor() {
           </Reveal>
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Clock, title: "45 minutes a month", body: "One or two video sessions, at times you choose. Evenings and weekends work best for families." },
-              { icon: ShieldCheck, title: "We handle the checks", body: "ID verification, references and an enhanced DBS check, arranged and paid for by Village." },
+              { icon: Clock, title: "45 minutes a month", body: "One or two video sessions, at times you choose. Evenings and weekends work best for students, young workers and families." },
+              { icon: ShieldCheck, title: "We handle the checks", body: "ID verification, references and an enhanced DBS check, arranged and paid for by Naija Mentors." },
               { icon: GraduationCap, title: "No teaching required", body: "You're not a tutor. You share your story, ask good questions and help them take one step." },
               { icon: CalendarHeart, title: "Fully flexible", body: "Pause any time. Set your availability in seconds, and only accept requests that suit you." },
             ].map((c, i) => (
@@ -120,8 +120,8 @@ export default async function BecomeAMentor() {
               {[
                 ["Apply", "Tell us about your work, your story and when you're free."],
                 ["Get verified", "A short call, two references and an enhanced DBS check. We cover the cost."],
-                ["Go live", "Your profile appears in the directory for families across the UK."],
-                ["Meet", "Accept requests that suit you and meet on secure video, with parents in the loop."],
+                ["Go live", "Your profile appears in the directory for mentees and families across the UK."],
+                ["Meet", "Accept requests that suit you and meet on secure video, with parents in the loop for under-18s."],
               ].map(([t, b], i) => (
                 <li key={t} className="flex gap-5">
                   <span className="font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-soft text-[1.1rem] text-[#7c5e1f] italic">

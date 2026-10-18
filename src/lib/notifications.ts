@@ -12,14 +12,15 @@ import { fmtDateLong, fmtTime } from "./time";
 /*
   Who hears about what:
   - new session request          → the mentor
-  - request accepted / declined  → the parent
+  - request accepted / declined  → the account that asked: a parent, or an adult mentee
   - session cancelled            → whoever didn't cancel it
   - mentor approved by an admin  → the mentor
   - unread messages              → a digest, sent by a scheduled job (see sendMessageDigests)
   Each function loads what it needs by id, so it can run after the response has been sent.
 */
 
-const parentUser = alias(users, "parent_user");
+// The mentee-side account: a parent booking for their child, or a mentee aged 18+ booking for themselves.
+const accountUser = alias(users, "account_user");
 const mentorUser = alias(users, "mentor_user");
 
 const link = (path: string) => `${appUrl()}${path}`;
@@ -38,19 +39,19 @@ async function sessionContext(sessionId: string) {
       s: sessions,
       c: conversations,
       m: mentors,
-      parent: { name: parentUser.name, email: parentUser.email },
+      account: { name: accountUser.name, email: accountUser.email, role: accountUser.role },
       mentorEmail: mentorUser.email,
     })
     .from(sessions)
     .innerJoin(conversations, eq(conversations.id, sessions.conversationId))
     .innerJoin(mentors, eq(mentors.id, sessions.mentorId))
-    .innerJoin(parentUser, eq(parentUser.id, sessions.parentId))
+    .innerJoin(accountUser, eq(accountUser.id, sessions.accountId))
     .innerJoin(mentorUser, eq(mentorUser.id, mentors.userId))
     .where(eq(sessions.id, sessionId))
     .limit(1);
   if (!row) return null;
   const mentor = toMentor(row.m);
-  return { ...row, mentor, mentorName: mentorName(mentor) };
+  return { ...row, mentor, mentorName: mentorName(mentor), self: row.account.role === "mentee" };
 }
 
 async function send(to: string, subject: string, content: EmailContent, idempotencyKey?: string) {
@@ -61,25 +62,29 @@ async function send(to: string, subject: string, content: EmailContent, idempote
 export async function notifySessionRequested(sessionId: string) {
   const x = await sessionContext(sessionId);
   if (!x) return;
-  const { s, c, parent } = x;
+  const { s, c, account, self } = x;
   await send(
     x.mentorEmail,
     `New request: ${c.menteeName} would like to meet you`,
     {
-      preheader: `${parent.name} has requested a ${s.durationMin}-minute session on ${fmtDateLong(s.start)}.`,
+      preheader: `${account.name} has requested a ${s.durationMin}-minute session on ${fmtDateLong(s.start)}.`,
       eyebrow: "New session request",
       heading: `${c.menteeName}, ${c.menteeAge}, would like to meet you`,
       paragraphs: [
-        `${parent.name} has asked for a ${s.durationMin}-minute video session with you. Please accept or decline within 48 hours so the family can plan.`,
+        self
+          ? `${account.name} has asked for a ${s.durationMin}-minute video session with you. Please accept or decline within 48 hours so they can plan.`
+          : `${account.name} has asked for a ${s.durationMin}-minute video session with you. Please accept or decline within 48 hours so the family can plan.`,
       ],
-      quote: { text: s.goals, by: `${parent.name}, parent of ${c.menteeName}` },
+      quote: { text: s.goals, by: self ? account.name : `${account.name}, parent of ${c.menteeName}` },
       details: [
         ["When", when(s.start)],
         ["Topic", s.topic],
-        ["Mentee", `${c.menteeName}, ${c.menteeAge} · ${c.schoolYear}`],
+        ["Mentee", `${c.menteeName}, ${c.menteeAge} · ${c.stage}`],
       ],
       cta: { label: "Review the request", href: link(`/inbox/${c.id}`) },
-      footnote: "Sessions always take place on video with a parent nearby. Never share personal contact details.",
+      footnote: self
+        ? "Sessions take place on video, here on Naija Mentors. Never share personal contact details."
+        : "Sessions always take place on video with a parent nearby. Never share personal contact details.",
     },
     `request-${s.id}`,
   );
@@ -88,19 +93,19 @@ export async function notifySessionRequested(sessionId: string) {
 export async function notifySessionResponded(sessionId: string, note?: string) {
   const x = await sessionContext(sessionId);
   if (!x || (x.s.status !== "accepted" && x.s.status !== "declined")) return;
-  const { s, c, mentor, parent } = x;
+  const { s, c, mentor, account, self } = x;
   const quote = note ? { text: note, by: x.mentorName } : undefined;
 
   if (s.status === "accepted") {
     await send(
-      parent.email,
-      `Confirmed: ${c.menteeName} meets ${x.mentorName}`,
+      account.email,
+      self ? `Confirmed: you’re meeting ${x.mentorName}` : `Confirmed: ${c.menteeName} meets ${x.mentorName}`,
       {
         preheader: `${when(s.start)}. The video room opens 15 minutes before.`,
         eyebrow: "Session confirmed",
-        heading: `It’s confirmed. ${c.menteeName} meets ${shortName(mentor)}.`,
+        heading: self ? `It’s confirmed. You’re meeting ${shortName(mentor)}.` : `It’s confirmed. ${c.menteeName} meets ${shortName(mentor)}.`,
         paragraphs: [
-          `Hello ${firstName(parent.name)}, ${x.mentorName} has accepted your request. The session room has the video link, a short agenda and a checklist for ${c.menteeName}.`,
+          `Hello ${firstName(account.name)}, ${x.mentorName} has accepted your request. The session room has the video link, a short agenda and a checklist for ${self ? "you" : c.menteeName}.`,
         ],
         quote,
         details: [
@@ -109,7 +114,9 @@ export async function notifySessionResponded(sessionId: string, note?: string) {
           ["Topic", s.topic],
         ],
         cta: { label: "Open the session room", href: link(`/sessions/${s.id}`) },
-        footnote: "Please be nearby for the start of the call. You can add the session to your calendar from the session room.",
+        footnote: self
+          ? "Bring your questions. You can add the session to your calendar from the session room."
+          : "Please be nearby for the start of the call. You can add the session to your calendar from the session room.",
       },
       `accepted-${s.id}`,
     );
@@ -117,14 +124,14 @@ export async function notifySessionResponded(sessionId: string, note?: string) {
   }
 
   await send(
-    parent.email,
-    `${x.mentorName} can’t take ${c.menteeName}’s session`,
+    account.email,
+    self ? `${x.mentorName} can’t take your session` : `${x.mentorName} can’t take ${c.menteeName}’s session`,
     {
       preheader: `Pick another time or meet another mentor.`,
       eyebrow: "Request declined",
       heading: `${shortName(mentor)} can’t make this one`,
       paragraphs: [
-        `Hello ${firstName(parent.name)}, ${x.mentorName} isn’t able to take the session on ${fmtDateLong(s.start)}. Mentors are busy professionals and this happens. It isn’t a reflection on ${c.menteeName}.`,
+        `Hello ${firstName(account.name)}, ${x.mentorName} isn’t able to take the session on ${fmtDateLong(s.start)}. Mentors are busy professionals and this happens. It isn’t a reflection on ${self ? "you" : c.menteeName}.`,
         `You can choose another time from ${mentor.firstName}’s availability, or meet someone else in the village.`,
       ],
       quote,
@@ -134,24 +141,25 @@ export async function notifySessionResponded(sessionId: string, note?: string) {
   );
 }
 
-export async function notifySessionCancelled(sessionId: string, by: "parent" | "mentor") {
+export async function notifySessionCancelled(sessionId: string, by: "account" | "mentor") {
   const x = await sessionContext(sessionId);
   if (!x || x.s.status !== "cancelled") return;
-  const { s, c, parent } = x;
-  const toMentor = by === "parent";
-  const who = toMentor ? parent.name : x.mentorName;
-  const whoShort = toMentor ? firstName(parent.name) : shortName(x.mentor);
+  const { s, c, account, self } = x;
+  const toMentor = by === "account";
+  const who = toMentor ? account.name : x.mentorName;
+  const whoShort = toMentor ? firstName(account.name) : shortName(x.mentor);
+  const theirSession = self ? "their session" : `${c.menteeName}’s session`;
   await send(
-    toMentor ? x.mentorEmail : parent.email,
-    `Cancelled: ${c.menteeName}’s session on ${fmtDateLong(s.start)}`,
+    toMentor ? x.mentorEmail : account.email,
+    `Cancelled: ${toMentor || !self ? `${c.menteeName}’s session` : "your session"} on ${fmtDateLong(s.start)}`,
     {
       preheader: `${who} cancelled the session planned for ${when(s.start)}.`,
       eyebrow: "Session cancelled",
       heading: `${whoShort} has cancelled the session`,
       paragraphs: [
         toMentor
-          ? `${parent.name} has cancelled ${c.menteeName}’s session with you. That time is open again for other families.`
-          : `Hello ${firstName(parent.name)}, ${x.mentorName} has had to cancel ${c.menteeName}’s session. You can message them to find another time.`,
+          ? `${account.name} has cancelled ${theirSession} with you. That time is open again for someone else.`
+          : `Hello ${firstName(account.name)}, ${x.mentorName} has had to cancel ${self ? "your session" : theirSession}. You can message them to find another time.`,
       ],
       details: [
         ["Was planned for", when(s.start)],
@@ -176,14 +184,14 @@ export async function notifyMentorApproved(mentorId: string) {
     row.email,
     "You’re verified. Welcome to the village.",
     {
-      preheader: "Your profile now shows as verified to every family on Village.",
+      preheader: "Your profile now shows as verified to everyone on Naija Mentors.",
       eyebrow: "Verification complete",
       heading: `You’re verified, ${shortName(m)}.`,
       paragraphs: [
-        "We’ve completed your enhanced DBS check, identity check and references. Your profile now carries the verified badge, and families can see it straight away.",
+        "We’ve completed your enhanced DBS check, identity check and references. Your profile now carries the verified badge, and mentees and families can see it straight away.",
         m.availability.length
-          ? "Keep your weekly availability up to date so families can book times that really work for you."
-          : "Add a few weekly times from your dashboard so families can book you.",
+          ? "Keep your weekly availability up to date so people can book times that really work for you."
+          : "Add a few weekly times from your dashboard so mentees and families can book you.",
       ],
       cta: { label: "Go to your dashboard", href: link("/dashboard") },
       footnote: "Thank you for giving your time to the next generation.",
@@ -202,7 +210,8 @@ type Pending = {
   email: string;
   name: string;
   conversationId: string;
-  menteeName: string;
+  /** Who the thread is about, when that isn't the person writing: "about Tobi". */
+  about?: string;
   from: string;
   body: string;
   createdAt: string;
@@ -224,12 +233,13 @@ export async function sendMessageDigests(now = new Date()) {
       sql`${messages.createdAt} > coalesce(${recipient.digestSentAt}, 'epoch')`,
     );
 
-  const [forParents, forMentors] = await Promise.all([
+  const [forAccounts, forMentors] = await Promise.all([
     db
       .select({
-        recipientId: parentUser.id,
-        email: parentUser.email,
-        name: parentUser.name,
+        recipientId: accountUser.id,
+        email: accountUser.email,
+        name: accountUser.name,
+        role: accountUser.role,
         conversationId: conversations.id,
         menteeName: conversations.menteeName,
         m: { honorific: mentors.honorific, firstName: mentors.firstName, lastName: mentors.lastName },
@@ -238,9 +248,9 @@ export async function sendMessageDigests(now = new Date()) {
       })
       .from(messages)
       .innerJoin(conversations, eq(conversations.id, messages.conversationId))
-      .innerJoin(parentUser, eq(parentUser.id, conversations.parentId))
+      .innerJoin(accountUser, eq(accountUser.id, conversations.accountId))
       .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
-      .where(base(conversations.lastReadParent, parentUser))
+      .where(base(conversations.lastReadAccount, accountUser))
       .orderBy(asc(messages.seq)),
     db
       .select({
@@ -249,7 +259,8 @@ export async function sendMessageDigests(now = new Date()) {
         name: mentorUser.name,
         conversationId: conversations.id,
         menteeName: conversations.menteeName,
-        from: parentUser.name,
+        role: accountUser.role,
+        from: accountUser.name,
         body: messages.body,
         createdAt: messages.createdAt,
       })
@@ -257,14 +268,19 @@ export async function sendMessageDigests(now = new Date()) {
       .innerJoin(conversations, eq(conversations.id, messages.conversationId))
       .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
       .innerJoin(mentorUser, eq(mentorUser.id, mentors.userId))
-      .innerJoin(parentUser, eq(parentUser.id, conversations.parentId))
+      .innerJoin(accountUser, eq(accountUser.id, conversations.accountId))
       .where(base(conversations.lastReadMentor, mentorUser))
       .orderBy(asc(messages.seq)),
   ]);
 
+  // Adult mentees write about themselves, so their threads don't need an "about".
   const pending: Pending[] = [
-    ...forParents.map(({ m, ...r }) => ({ ...r, from: mentorName({ ...m, honorific: m.honorific ?? undefined }) })),
-    ...forMentors,
+    ...forAccounts.map(({ m, role, menteeName, ...r }) => ({
+      ...r,
+      about: role === "mentee" ? undefined : menteeName,
+      from: mentorName({ ...m, honorific: m.honorific ?? undefined }),
+    })),
+    ...forMentors.map(({ role, menteeName, ...r }) => ({ ...r, about: role === "mentee" ? undefined : menteeName })),
   ];
   const byRecipient = new Map<string, Pending[]>();
   for (const p of pending) byRecipient.set(p.recipientId, [...(byRecipient.get(p.recipientId) ?? []), p]);
@@ -287,17 +303,17 @@ export async function sendMessageDigests(now = new Date()) {
 
     const ok = await send(
       email,
-      `${total === 1 ? "A new message" : `${total} new messages`} waiting for you on Village`,
+      `${total === 1 ? "A new message" : `${total} new messages`} waiting for you on Naija Mentors`,
       {
         preheader: `${list.at(-1)!.from}: ${list.at(-1)!.body.slice(0, 90)}`,
         eyebrow: "Your messages",
         heading: total === 1 ? "You have a new message" : `You have ${total} new messages`,
-        paragraphs: [`Hello ${firstName(name)}, here’s what’s waiting in your Village inbox.`],
+        paragraphs: [`Hello ${firstName(name)}, here’s what’s waiting in your Naija Mentors inbox.`],
         items: [...threads.values()].map((t) => {
           const last = t.at(-1)!;
           return {
             title: last.from,
-            meta: `${t.length} new · about ${last.menteeName}`,
+            meta: last.about ? `${t.length} new · about ${last.about}` : `${t.length} new`,
             body: last.body.length > 160 ? `${last.body.slice(0, 157)}…` : last.body,
             href: link(`/inbox/${last.conversationId}`),
           };

@@ -22,11 +22,19 @@ const instrument = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(BRAND.url),
   title: {
-    default: `${BRAND.name} · Nigerian mentors for the next generation`,
+    default: `${BRAND.name} · It takes a village`,
     template: `%s · ${BRAND.name}`,
   },
   description: BRAND.description,
+  applicationName: BRAND.name,
+  openGraph: {
+    type: "website",
+    siteName: BRAND.name,
+    locale: "en_GB",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

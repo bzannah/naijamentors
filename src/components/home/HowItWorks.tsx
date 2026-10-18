@@ -9,7 +9,7 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
     {
       n: "01",
       title: "Discover your village",
-      body: "Browse mentors by the career your teen dreams of, the city you live in, or the language your family speaks at home.",
+      body: "Browse mentors by the career you’re dreaming of, the city you live in, or the language you speak at home.",
       visual: (
         <div className="space-y-3">
           <div className="flex items-center gap-2.5 rounded-full bg-card px-4 py-3 text-[0.85rem] text-ink-3 shadow-soft ring-1 ring-line">
@@ -36,7 +36,7 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
     {
       n: "02",
       title: "Request a session",
-      body: "Pick a time from their real availability, tell them a little about your child, and send the request. Mentors reply right here.",
+      body: "Pick a time from their real availability, say a little about where you’re headed, and send the request. Mentors reply right here.",
       visual: (
         <div className="rounded-3xl bg-card p-4 shadow-soft ring-1 ring-line">
           <div className="grid grid-cols-4 gap-2 text-center">
@@ -70,7 +70,7 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
     {
       n: "03",
       title: "Meet, face to face",
-      body: "Join a secure video session with a parent nearby. Follow up in your inbox, book the next one, and watch your teen's world get bigger.",
+      body: "Join a secure video session, with a parent nearby for under-16s. Follow up in your inbox, book the next one, and watch your world get bigger.",
       visual: (
         <div className="relative overflow-hidden rounded-3xl bg-indigo p-3 shadow-soft">
           <div className="grid grid-cols-2 gap-2">
@@ -107,11 +107,12 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
           <div>
             <p className="eyebrow text-clay">How it works</p>
             <h2 className="font-display mt-4 max-w-2xl text-[clamp(2.4rem,4.6vw,4rem)] leading-[1.02] tracking-[-0.035em] text-balance">
-              Three steps from <em>“who do we ask?”</em> to a mentor who cares.
+              Three steps from <em>“who do I ask?”</em> to a mentor who cares.
             </h2>
           </div>
           <p className="max-w-sm text-[1.02rem] leading-relaxed text-ink-2">
-            No fees, no agencies, no awkward cold emails. Parents stay in control from the very first message.
+            No fees, no agencies, no awkward cold emails. From 18 you&rsquo;re in charge; for under-18s, parents are in the loop from the
+            very first message.
           </p>
         </Reveal>
 

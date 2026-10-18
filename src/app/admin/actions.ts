@@ -27,7 +27,7 @@ function refresh() {
  * A live mentor must hold all three, so unticking one sends them back to review.
  */
 export async function setMentorCheck(mentorId: string, check: Check, on: boolean): Promise<AdminResult> {
-  if (!(await isAdmin())) return { ok: false, error: "Only the Village team can do that." };
+  if (!(await isAdmin())) return { ok: false, error: "Only the Naija Mentors team can do that." };
   if (!["dbs", "id", "references"].includes(check) || typeof on !== "boolean") return { ok: false, error: "Unknown check." };
 
   const updated = await (await getDb())
@@ -41,7 +41,7 @@ export async function setMentorCheck(mentorId: string, check: Check, on: boolean
 
 /** Publish a pending mentor as verified. Requires all three checks. */
 export async function approveMentor(mentorId: string): Promise<AdminResult> {
-  if (!(await isAdmin())) return { ok: false, error: "Only the Village team can do that." };
+  if (!(await isAdmin())) return { ok: false, error: "Only the Naija Mentors team can do that." };
   const updated = await (await getDb())
     .update(mentors)
     .set({ status: "active", approvedAt: new Date().toISOString() })
@@ -63,7 +63,7 @@ export async function approveMentor(mentorId: string): Promise<AdminResult> {
 
 /** Take a live mentor back into review, e.g. while a DBS renewal is pending. Their checks are kept. */
 export async function returnToReview(mentorId: string): Promise<AdminResult> {
-  if (!(await isAdmin())) return { ok: false, error: "Only the Village team can do that." };
+  if (!(await isAdmin())) return { ok: false, error: "Only the Naija Mentors team can do that." };
   const updated = await (await getDb())
     .update(mentors)
     .set({ status: "pending", approvedAt: null })

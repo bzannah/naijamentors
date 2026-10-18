@@ -82,7 +82,7 @@ export function Countdown({ start, end, meetingUrl, status }: { start: string; e
 }
 
 export function Checklist({ id, items }: { id: string; items: string[] }) {
-  const key = `village-checklist-${id}`;
+  const key = `nm-checklist-${id}`;
   const [done, setDone] = useState<number[]>([]);
 
   useEffect(() => {

@@ -6,12 +6,20 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LayoutDashboard, LogOut, Menu, MessageCircle, ShieldCheck, UserRound, X } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { cn } from "@/lib/cn";
+import type { Role } from "@/lib/types";
 import { Logo } from "./Logo";
 import { Avatar } from "./Portrait";
 import { ButtonLink } from "./ui/Button";
 import { AsoOke } from "./Patterns";
 
-type HeaderUser = { name: string; role: "parent" | "mentor" | "admin"; photo?: string; profileHref?: string } | null;
+type HeaderUser = { name: string; role: Role; photo?: string; profileHref?: string } | null;
+
+const ACCOUNT_LABEL: Record<Role, string> = {
+  admin: "Naija Mentors team",
+  mentor: "Mentor account",
+  mentee: "Mentee account",
+  parent: "Parent account",
+};
 
 const NAV = [
   { href: "/mentors", label: "Find a mentor" },
@@ -67,7 +75,7 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
           scrolled || open ? "glass border-b border-line shadow-[0_8px_30px_-20px_rgb(23_20_15/0.25)]" : "border-b border-transparent",
         )}
       >
-        <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between gap-6 px-5 sm:px-8">
+        <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between gap-3 px-5 sm:gap-6 sm:px-8">
           <Logo />
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Main">
@@ -123,7 +131,7 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
                     >
                       <div className="border-b border-line px-4 py-3.5">
                         <p className="truncate text-[0.95rem] font-semibold">{user.name}</p>
-                        <p className="text-[0.8rem] text-ink-3">{user.role === "admin" ? "Village team" : user.role === "mentor" ? "Mentor account" : "Parent account"}</p>
+                        <p className="text-[0.8rem] text-ink-3">{ACCOUNT_LABEL[user.role]}</p>
                       </div>
                       <div className="p-1.5">
                         {user.role === "admin" ? (
@@ -151,10 +159,10 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
               </>
             ) : (
               <>
-                <ButtonLink href="/signin" variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <ButtonLink href="/signin" variant="ghost" size="sm" className="max-sm:hidden">
                   Sign in
                 </ButtonLink>
-                <ButtonLink href="/mentors" size="sm" className="hidden sm:inline-flex">
+                <ButtonLink href="/mentors" size="sm" className="max-sm:hidden">
                   Find a mentor
                 </ButtonLink>
               </>
@@ -197,7 +205,7 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
                   Sign in
                 </ButtonLink>
                 <ButtonLink href="/signup" size="lg" className="flex-1">
-                  Join Village
+                  Join the village
                 </ButtonLink>
               </>
             )}

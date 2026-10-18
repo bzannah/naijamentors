@@ -3,9 +3,10 @@ import { cache } from "react";
 import { getDb, type Database } from "./db";
 import { toConversation, toMentor, toMessage, toSession } from "./db/mappers";
 import { conversations, mentors, messages, sessions, users } from "./db/schema";
+import { canBook } from "./mentees";
 import { upcomingSlots } from "./time";
 import type { SafeUser } from "./auth";
-import type { Conversation, Mentor, Message, Session, User } from "./types";
+import type { Conversation, Mentor, Message, Role, Session, User } from "./types";
 
 export function mentorName(m: Pick<Mentor, "honorific" | "firstName" | "lastName">) {
   return `${m.honorific ? m.honorific + " " : ""}${m.firstName} ${m.lastName}`;
@@ -75,7 +76,7 @@ export const mentorForUser = cache(async (user: Pick<SafeUser, "id" | "role">) =
 
 /** SQL condition: conversations this user is a party to. Admins aren't party to any. */
 function accessible(db: Database, user: Pick<SafeUser, "id" | "role">): SQL {
-  if (user.role === "parent") return eq(conversations.parentId, user.id);
+  if (canBook(user.role)) return eq(conversations.accountId, user.id);
   if (user.role === "mentor")
     return inArray(conversations.mentorId, db.select({ id: mentors.id }).from(mentors).where(eq(mentors.userId, user.id)));
   return sql`false`;
@@ -92,12 +93,12 @@ export async function accessibleConversation(user: Pick<SafeUser, "id" | "role">
   return row ? toConversation(row) : null;
 }
 
-/** The thread between a parent and a mentor, if one exists. */
-export async function conversationBetween(parentId: string, mentorId: string): Promise<Conversation | null> {
+/** The thread between an account and a mentor, if one exists. */
+export async function conversationBetween(accountId: string, mentorId: string): Promise<Conversation | null> {
   const [row] = await (await getDb())
     .select()
     .from(conversations)
-    .where(and(eq(conversations.parentId, parentId), eq(conversations.mentorId, mentorId)))
+    .where(and(eq(conversations.accountId, accountId), eq(conversations.mentorId, mentorId)))
     .orderBy(asc(conversations.createdAt))
     .limit(1);
   return row ? toConversation(row) : null;
@@ -107,17 +108,21 @@ export async function conversationBetween(parentId: string, mentorId: string): P
 
 export type Counterpart = { name: string; photo?: string; subtitle: string; href?: string };
 
-function counterpart(user: SafeUser, c: Conversation, m: Mentor, parentName: string | null): Counterpart {
-  if (user.role === "parent") return { name: mentorName(m), photo: m.photo, subtitle: m.role, href: `/mentors/${m.slug}` };
+/** The mentee-side account of a conversation: a parent, or an adult mentee speaking for themselves. */
+export type Account = { name: string; role: Role };
+
+function counterpart(user: SafeUser, c: Conversation, m: Mentor, account: Account | null): Counterpart {
+  if (user.role !== "mentor") return { name: mentorName(m), photo: m.photo, subtitle: m.role, href: `/mentors/${m.slug}` };
+  if (account?.role === "mentee") return { name: account.name, subtitle: `${c.menteeAge} · ${c.stage}` };
   return {
-    name: parentName ?? "Parent",
-    subtitle: `Parent of ${c.menteeName}, ${c.menteeAge} · ${c.schoolYear}`,
+    name: account?.name ?? "Parent",
+    subtitle: `Parent of ${c.menteeName}, ${c.menteeAge} · ${c.stage}`,
   };
 }
 
 /** Messages the user hasn't read yet, per conversation. Their own messages and status updates don't count. */
 async function unreadCounts(db: Database, user: SafeUser, where: SQL) {
-  const lastRead = user.role === "parent" ? conversations.lastReadParent : conversations.lastReadMentor;
+  const lastRead = user.role === "mentor" ? conversations.lastReadMentor : conversations.lastReadAccount;
   const rows = await db
     .select({ id: messages.conversationId, n: count() })
     .from(messages)
@@ -138,10 +143,10 @@ export type ConversationSummary = {
 export const conversationsFor = cache(async (user: SafeUser): Promise<ConversationSummary[]> => {
   const db = await getDb();
   const rows = await db
-    .select({ c: conversations, m: mentors, parentName: users.name })
+    .select({ c: conversations, m: mentors, account: { name: users.name, role: users.role } })
     .from(conversations)
     .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
-    .leftJoin(users, eq(users.id, conversations.parentId))
+    .leftJoin(users, eq(users.id, conversations.accountId))
     .where(accessible(db, user))
     .orderBy(desc(conversations.updatedAt));
   if (!rows.length) return [];
@@ -163,11 +168,11 @@ export const conversationsFor = cache(async (user: SafeUser): Promise<Conversati
   const lastBy = new Map(lasts.map((m) => [m.conversationId, toMessage(m)]));
   const sessionBy = new Map(latest.map((s) => [s.conversationId, toSession(s)]));
 
-  return rows.map(({ c: row, m, parentName }) => {
+  return rows.map(({ c: row, m, account }) => {
     const conversation = toConversation(row);
     return {
       conversation,
-      other: counterpart(user, conversation, toMentor(m), parentName),
+      other: counterpart(user, conversation, toMentor(m), account),
       last: lastBy.get(row.id),
       unread: unread.get(row.id) ?? 0,
       session: sessionBy.get(row.id),
@@ -186,7 +191,7 @@ export const unreadTotal = cache(async (user: SafeUser) => {
 export type Thread = {
   conversation: Conversation;
   mentor: Mentor;
-  parent: Pick<User, "id" | "name" | "city">;
+  account: Pick<User, "id" | "name" | "city" | "role">;
   messages: Message[];
   sessions: Record<string, Session>;
   other: Counterpart;
@@ -196,10 +201,10 @@ export type Thread = {
 export async function threadFor(user: SafeUser, id: string): Promise<Thread | null> {
   const db = await getDb();
   const [row] = await db
-    .select({ c: conversations, m: mentors, p: { id: users.id, name: users.name, city: users.city } })
+    .select({ c: conversations, m: mentors, a: { id: users.id, name: users.name, city: users.city, role: users.role } })
     .from(conversations)
     .innerJoin(mentors, eq(mentors.id, conversations.mentorId))
-    .innerJoin(users, eq(users.id, conversations.parentId))
+    .innerJoin(users, eq(users.id, conversations.accountId))
     .where(and(eq(conversations.id, id), accessible(db, user)))
     .limit(1);
   if (!row) return null;
@@ -210,21 +215,28 @@ export async function threadFor(user: SafeUser, id: string): Promise<Thread | nu
   ]);
   const conversation = toConversation(row.c);
   const mentor = toMentor(row.m);
-  const parent = { id: row.p.id, name: row.p.name, city: row.p.city ?? undefined };
+  const account = { id: row.a.id, name: row.a.name, city: row.a.city ?? undefined, role: row.a.role };
   return {
     conversation,
     mentor,
-    parent,
+    account,
     messages: msgs.map(toMessage),
     sessions: Object.fromEntries(sess.map((s) => [s.id, toSession(s)])),
-    other: counterpart(user, conversation, mentor, parent.name),
-    names: { [parent.id]: parent.name, [mentor.userId]: mentorName(mentor) },
+    other: counterpart(user, conversation, mentor, account),
+    names: { [account.id]: account.name, [mentor.userId]: mentorName(mentor) },
   };
 }
 
 /* ---------------- Sessions ---------------- */
 
-export type SessionView = Session & { mentor: Mentor; parentName: string; menteeName: string; menteeAge: number; schoolYear: string };
+export type SessionView = Session & {
+  mentor: Mentor;
+  /** Who requested it: a parent, or the mentee themselves. */
+  account: Account;
+  menteeName: string;
+  menteeAge: number;
+  stage: string;
+};
 
 async function sessionViews(user: SafeUser, extra?: SQL): Promise<SessionView[]> {
   const db = await getDb();
@@ -232,18 +244,24 @@ async function sessionViews(user: SafeUser, extra?: SQL): Promise<SessionView[]>
     .select({
       s: sessions,
       m: mentors,
-      parentName: users.name,
+      accountName: users.name,
+      accountRole: users.role,
       menteeName: conversations.menteeName,
       menteeAge: conversations.menteeAge,
-      schoolYear: conversations.schoolYear,
+      stage: conversations.stage,
     })
     .from(sessions)
     .innerJoin(conversations, eq(conversations.id, sessions.conversationId))
     .innerJoin(mentors, eq(mentors.id, sessions.mentorId))
-    .leftJoin(users, eq(users.id, sessions.parentId))
+    .leftJoin(users, eq(users.id, sessions.accountId))
     .where(and(accessible(db, user), extra))
     .orderBy(asc(sessions.start));
-  return rows.map(({ s, m, parentName, ...c }) => ({ ...toSession(s), mentor: toMentor(m), parentName: parentName ?? "Parent", ...c }));
+  return rows.map(({ s, m, accountName, accountRole, ...c }) => ({
+    ...toSession(s),
+    mentor: toMentor(m),
+    account: { name: accountName ?? "Parent", role: accountRole ?? "parent" },
+    ...c,
+  }));
 }
 
 export const sessionsFor = cache((user: SafeUser) => sessionViews(user));

@@ -18,7 +18,7 @@ export function toUser(r: UserRow): User {
     createdAt: r.createdAt,
     mentorId: opt(r.mentorId),
     city: opt(r.city),
-    children: r.children,
+    mentees: r.mentees.map(({ name, age, stage, schoolYear }) => ({ name, age, stage: stage ?? schoolYear ?? "" })),
   };
 }
 
@@ -32,7 +32,7 @@ export function fromUser(u: User): typeof users.$inferInsert {
     createdAt: u.createdAt,
     mentorId: u.mentorId ?? null,
     city: u.city ?? null,
-    children: u.children ?? [],
+    mentees: u.mentees ?? [],
   };
 }
 
@@ -62,13 +62,13 @@ export function fromMentor(m: Mentor): typeof mentors.$inferInsert {
 }
 
 export function toConversation(r: ConversationRow): Conversation {
-  const { lastReadParent, lastReadMentor, ...rest } = r;
-  return { ...rest, lastRead: { parent: lastReadParent, mentor: lastReadMentor } };
+  const { lastReadAccount, lastReadMentor, ...rest } = r;
+  return { ...rest, lastRead: { account: lastReadAccount, mentor: lastReadMentor } };
 }
 
 export function fromConversation(c: Conversation): ConversationRow {
   const { lastRead, ...rest } = c;
-  return { ...rest, lastReadParent: lastRead.parent, lastReadMentor: lastRead.mentor };
+  return { ...rest, lastReadAccount: lastRead.account, lastReadMentor: lastRead.mentor };
 }
 
 export function toSession(r: SessionRow): Session {

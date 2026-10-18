@@ -1,14 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { demoSignIn, signIn, type FormState } from "@/app/actions";
 import { Avatar } from "@/components/Portrait";
 import { buttonClasses } from "@/components/ui/Button";
 
 const CHIAMAKA = "https://images.unsplash.com/photo-1678695972687-033fa0bdbac9";
 
-export function SignInForm({ next }: { next: string }) {
+export type Demo = "mentee" | "parent" | "mentor";
+
+const DEMOS: Record<Demo, { title: string; sub: string; initials: string; photo?: string }> = {
+  mentee: { title: "As a mentee", sub: "Bukola, 23, recent graduate", initials: "Bukola Ajayi" },
+  parent: { title: "As a parent", sub: "Funmi, mum of Tobi & David", initials: "Funmilayo Adeyemi" },
+  mentor: { title: "As a mentor", sub: "Dr. Chiamaka Obi", initials: "Chiamaka Obi", photo: CHIAMAKA },
+};
+
+export function SignInForm({ next, demos }: { next: string; demos: Demo[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(signIn, undefined);
 
   return (
@@ -33,29 +41,34 @@ export function SignInForm({ next }: { next: string }) {
         </button>
       </form>
 
-      <div className="my-9 flex items-center gap-4 text-[0.75rem] font-semibold tracking-[0.16em] text-ink-4 uppercase">
-        <span className="hairline flex-1" /> Or explore the demo <span className="hairline flex-1" />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <DemoButton who="parent" next={next} title="As a parent" sub="Funmi, mum of Tobi & David" initials="Funmilayo Adeyemi" />
-        <DemoButton who="mentor" next={next} title="As a mentor" sub="Dr. Chiamaka Obi" photo={CHIAMAKA} initials="Chiamaka Obi" />
-      </div>
+      {demos.length > 0 && (
+        <>
+          <div className="my-9 flex items-center gap-4 text-[0.75rem] font-semibold tracking-[0.16em] text-ink-4 uppercase">
+            <span className="hairline flex-1" /> Or explore the demo <span className="hairline flex-1" />
+          </div>
+          <div className="grid gap-2.5">
+            {demos.map((who) => (
+              <DemoButton key={who} who={who} next={next} {...DEMOS[who]} />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
 
-function DemoButton({ who, next, title, sub, photo, initials }: { who: string; next: string; title: string; sub: string; photo?: string; initials: string }) {
+function DemoButton({ who, next, title, sub, photo, initials }: { who: Demo; next: string; title: string; sub: string; photo?: string; initials: string }) {
   return (
     <form action={demoSignIn}>
       <input type="hidden" name="who" value={who} />
       <input type="hidden" name="next" value={next} />
-      <button className="group flex w-full items-center gap-3 rounded-2xl bg-card p-3.5 text-left ring-1 ring-line transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-line-2">
-        <Avatar src={photo} name={initials} size={42} />
-        <span className="min-w-0">
+      <button className="group flex w-full items-center gap-3 rounded-2xl bg-card p-3 text-left ring-1 ring-line transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-line-2">
+        <Avatar src={photo} name={initials} size={40} />
+        <span className="min-w-0 flex-1">
           <span className="block text-[0.9rem] font-semibold">{title}</span>
           <span className="block truncate text-[0.78rem] text-ink-3">{sub}</span>
         </span>
+        <ArrowRight className="mr-1 h-4 w-4 text-ink-4 transition group-hover:translate-x-0.5 group-hover:text-forest" />
       </button>
     </form>
   );

@@ -12,10 +12,12 @@ import { Checklist, Countdown } from "./RoomClient";
 
 export const metadata: Metadata = { title: "Session room" };
 
-const AGENDA = [
-  { min: 5, title: "Hellos", body: "Introductions with the parent present. Cameras on, smiles ready." },
+const agenda = (adult: boolean) => [
+  { min: 5, title: "Hellos", body: adult ? "Introductions. Cameras on, smiles ready." : "Introductions with the parent present. Cameras on, smiles ready." },
   { min: 10, title: "The mentor's story", body: "How they got here, including the detours and the setbacks." },
-  { min: 20, title: "The teen's world", body: "What they enjoy, what worries them, what they're curious about." },
+  adult
+    ? { min: 20, title: "Where they are now", body: "What they're working towards, what's in the way, what they've already tried." }
+    : { min: 20, title: "Their world", body: "What they enjoy, what worries them, what they're curious about." },
   { min: 10, title: "One small step", body: "Agree one achievable action before the next session." },
 ];
 
@@ -27,13 +29,30 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
 
   const name = mentorName(s.mentor);
   const end = new Date(new Date(s.start).getTime() + s.durationMin * 60000).toISOString();
-  const questions =
-    user.role === "parent"
+  const mentor = user.role === "mentor";
+  // An adult mentee holds their own account; under-18s are booked by a parent.
+  const adult = s.account.role === "mentee";
+  const job = s.mentor.role.split(/[,(]/)[0].toLowerCase();
+  const questions = !mentor
+    ? adult
       ? [
+          "What do you wish you'd known in your first year of work?",
+          `What do you wish someone had told you before becoming a ${job}?`,
+          "What's a mistake you learnt the most from?",
+          "What could I do this month to get closer?",
+        ]
+      : [
           "What did you enjoy most at my age?",
-          `What do you wish someone had told you before becoming a ${s.mentor.role.split(/[,(]/)[0].toLowerCase()}?`,
+          `What do you wish someone had told you before becoming a ${job}?`,
           "What's a mistake you learnt the most from?",
           "What could I start doing this month?",
+        ]
+    : adult
+      ? [
+          "Where would you like to be in two years?",
+          "What have you already tried?",
+          "What feels hardest about where you are right now?",
+          "Who do you look up to, and why?",
         ]
       : [
           `What made ${s.menteeName} curious about this?`,
@@ -73,7 +92,7 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
           <figure className="relative w-[42%] max-w-[230px]">
             <Portrait name={`${s.menteeName}`} className="aspect-[3/4] w-full ring-[5px] ring-indigo-2" />
             <figcaption className="mt-3 text-center text-[0.88rem] text-paper/75">
-              {s.menteeName}, {s.menteeAge} · {s.schoolYear}
+              {s.menteeName}, {s.menteeAge} · {s.stage}
             </figcaption>
           </figure>
         </div>
@@ -85,9 +104,9 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
         <div className="mt-20 grid gap-5 lg:grid-cols-3">
           <section className="rounded-[28px] bg-paper/[0.06] p-7 ring-1 ring-paper/10 lg:col-span-2">
             <h2 className="font-display text-[1.6rem]">A simple agenda</h2>
-            <p className="mt-1 text-[0.9rem] text-paper/60">From the Village guide. Use it loosely; conversation beats structure.</p>
+            <p className="mt-1 text-[0.9rem] text-paper/60">From the Naija Mentors guide. Use it loosely; conversation beats structure.</p>
             <ol className="mt-6 grid gap-3 sm:grid-cols-2">
-              {AGENDA.map((a, i) => (
+              {agenda(adult).map((a, i) => (
                 <li key={a.title} className="rounded-2xl bg-paper/[0.05] p-5 ring-1 ring-paper/10">
                   <div className="flex items-baseline justify-between">
                     <span className="font-display text-[1.6rem] text-gold-2 italic">{String(i + 1).padStart(2, "0")}</span>
@@ -105,15 +124,19 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
             <Checklist
               id={s.id}
               items={
-                user.role === "parent"
-                  ? ["A quiet room with good light", "Camera and microphone tested", "You're nearby for the start", `${s.menteeName}'s questions written down`, "A notebook and pen"]
-                  : ["Read the request and goals again", "Quiet space, camera on", "Your story: highs and setbacks", "One small next step in mind", "Village guide refreshed"]
+                mentor
+                  ? ["Read the request and goals again", "Quiet space, camera on", "Your story: highs and setbacks", "One small next step in mind", "The guide, refreshed"]
+                  : adult
+                    ? ["A quiet room with good light", "Camera and microphone tested", "Your questions written down", "Your CV or work to hand, if it helps", "A notebook and pen"]
+                    : ["A quiet room with good light", "Camera and microphone tested", "You're nearby for the start", `${s.menteeName}'s questions written down`, "A notebook and pen"]
               }
             />
           </section>
 
           <section className="rounded-[28px] bg-paper/[0.06] p-7 ring-1 ring-paper/10 lg:col-span-2">
-            <h2 className="font-display text-[1.6rem]">{user.role === "parent" ? `Questions ${s.menteeName} could ask` : "Good questions to ask"}</h2>
+            <h2 className="font-display text-[1.6rem]">
+              {mentor ? "Good questions to ask" : adult ? "Questions you could ask" : `Questions ${s.menteeName} could ask`}
+            </h2>
             <div className="mt-5 flex flex-wrap gap-2">
               {questions.map((q) => (
                 <span key={q} className="rounded-full bg-paper/[0.08] px-4 py-2.5 text-[0.9rem] text-paper/85 ring-1 ring-paper/10">
@@ -129,7 +152,7 @@ export default async function SessionRoom({ params }: PageProps<"/sessions/[id]"
           <section className="flex flex-col gap-3 rounded-[28px] bg-paper/[0.06] p-7 ring-1 ring-paper/10">
             <h2 className="font-display text-[1.6rem]">Need anything?</h2>
             <Link href={`/inbox/${s.conversationId}`} className="flex items-center gap-3 rounded-2xl bg-paper/[0.06] p-4 text-[0.9rem] transition hover:bg-paper/10">
-              <MessageCircle className="h-5 w-5 text-gold-2" /> Message {user.role === "parent" ? s.mentor.firstName : s.parentName.split(" ")[0]}
+              <MessageCircle className="h-5 w-5 text-gold-2" /> Message {mentor ? s.account.name.split(" ")[0] : s.mentor.firstName}
             </Link>
             {s.status === "accepted" && (
               <a href={`/api/sessions/${s.id}/ics`} className="flex items-center gap-3 rounded-2xl bg-paper/[0.06] p-4 text-[0.9rem] transition hover:bg-paper/10">

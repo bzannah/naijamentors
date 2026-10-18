@@ -50,18 +50,20 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
               </p>
             </div>
           )}
-          <p className="eyebrow text-clay">{user.role === "mentor" ? "Mentor dashboard" : "Family dashboard"}</p>
+          <p className="eyebrow text-clay">{user.role === "mentor" ? "Mentor dashboard" : user.role === "mentee" ? "Your dashboard" : "Family dashboard"}</p>
           <h1 className="font-display mt-3 text-[clamp(2.6rem,5.6vw,4.6rem)] leading-[1] tracking-[-0.04em]">
             {greeting(now)}, <em className="text-forest-3">{first}.</em>
           </h1>
           <p className="mt-4 text-[1.08rem] text-ink-2">
             {user.role === "mentor"
               ? pending.length
-                ? `${pending.length} ${pending.length === 1 ? "family is" : "families are"} waiting to hear from you.`
+                ? `${pending.length} ${pending.length === 1 ? "request is" : "requests are"} waiting to hear from you.`
                 : "You're all caught up. Thank you for showing up for our young people."
               : upcoming.length
                 ? `${upcoming.length} upcoming ${upcoming.length === 1 ? "session" : "sessions"} in your village.`
-                : "Let's find someone wonderful for your teenager to meet."}
+                : user.role === "mentee"
+                  ? "Let's find someone who has walked the road you're on."
+                  : "Let's find someone wonderful for your child to meet."}
           </p>
         </div>
       </section>
@@ -70,16 +72,16 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
         {user.role === "mentor" && mentor ? (
           <MentorBoard mentor={mentor} sessions={sessions} upcoming={upcoming} pending={pending} unreadCount={unread.length} now={now} />
         ) : (
-          <ParentBoard user={user} upcoming={upcoming} pending={pending} convos={convos} mentors={mentors} now={now} />
+          <AccountBoard user={user} upcoming={upcoming} pending={pending} convos={convos} mentors={mentors} now={now} />
         )}
       </div>
     </div>
   );
 }
 
-/* ---------------- Parent ---------------- */
+/* ---------------- Parents and mentees aged 18+ ---------------- */
 
-function ParentBoard({
+function AccountBoard({
   user,
   upcoming,
   pending,
@@ -95,6 +97,7 @@ function ParentBoard({
   now: number;
 }) {
   const next = upcoming[0];
+  const self = user.role === "mentee";
   const recommended = mentors
     .filter((m) => m.status === "active" && !convos.some((c) => c.conversation.mentorId === m.id))
     .sort((a, b) => (a.nextSlot ?? "9").localeCompare(b.nextSlot ?? "9"))
@@ -103,7 +106,7 @@ function ParentBoard({
   return (
     <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
       <div className="min-w-0 space-y-6">
-        {next ? <NextSessionCard s={next} viewer="parent" now={now} /> : <EmptyNext />}
+        {next ? <NextSessionCard s={next} side="account" now={now} /> : <EmptyNext self={self} />}
 
         <Panel title="Requests & sessions" icon={CalendarClock} action={{ href: "/inbox", label: "Open messages" }}>
           {[...pending, ...upcoming.slice(1)].length === 0 ? (
@@ -111,7 +114,7 @@ function ParentBoard({
           ) : (
             <ul className="divide-y divide-line">
               {[...pending, ...upcoming.slice(1)].map((s) => (
-                <SessionRow key={s.id} s={s} title={`${s.menteeName} × ${mentorName(s.mentor)}`} photo={s.mentor.photo} />
+                <SessionRow key={s.id} s={s} title={self ? mentorName(s.mentor) : `${s.menteeName} × ${mentorName(s.mentor)}`} photo={s.mentor.photo} />
               ))}
             </ul>
           )}
@@ -157,16 +160,16 @@ function ParentBoard({
           )}
         </Panel>
 
-        <Panel title="Your teenagers" icon={Users}>
-          {user.children?.length ? (
+        <Panel title={self ? "About you" : "Your children"} icon={Users} subtitle={self ? "What mentors see when you request a session." : undefined}>
+          {user.mentees?.length ? (
             <ul className="space-y-2.5">
-              {user.children.map((c) => (
+              {user.mentees.map((c) => (
                 <li key={c.name} className="flex items-center gap-3 rounded-2xl bg-paper-2/60 p-3">
-                  <Avatar name={c.name} size={40} />
+                  <Avatar name={self ? user.name : c.name} size={40} />
                   <div className="flex-1">
-                    <p className="font-semibold">{c.name}</p>
+                    <p className="font-semibold">{self ? user.name : c.name}</p>
                     <p className="text-[0.82rem] text-ink-3">
-                      {c.age} · {c.schoolYear}
+                      {c.age} · {c.stage}
                     </p>
                   </div>
                   <Link href="/mentors" className="text-[0.82rem] font-semibold text-forest">
@@ -180,11 +183,19 @@ function ParentBoard({
           )}
         </Panel>
 
-        <GuideCard
-          title="Your role as a parent"
-          body="Be nearby, let your child lead, and share feedback. Five minutes of reading makes every session better."
-          href="/guide#parents"
-        />
+        {self ? (
+          <GuideCard
+            title="Making the most of a mentor"
+            body="Bring real questions, do the small steps you agree, and say thank you. Five minutes of reading makes every session better."
+            href="/guide#mentees"
+          />
+        ) : (
+          <GuideCard
+            title="Your role as a parent"
+            body="Be nearby, let your child lead, and share feedback. Five minutes of reading makes every session better."
+            href="/guide#parents"
+          />
+        )}
       </div>
     </div>
   );
@@ -208,12 +219,12 @@ function MentorBoard({
   now: number;
 }) {
   const done = sessions.filter((s) => s.status === "accepted" && new Date(s.start).getTime() + s.durationMin * 60000 <= now);
-  const families = new Set(sessions.filter((s) => s.status === "accepted").map((s) => s.parentId)).size;
+  const mentees = new Set(sessions.filter((s) => s.status === "accepted").map((s) => `${s.accountId}:${s.menteeName}`)).size;
   const minutes = done.reduce((m, s) => m + s.durationMin, 0);
   const stats = [
     { label: "Waiting for you", value: pending.length, icon: Clock, tone: pending.length ? "text-clay" : "text-ink" },
     { label: "Upcoming sessions", value: upcoming.length, icon: CalendarClock, tone: "text-ink" },
-    { label: "Families supported", value: families, icon: HeartHandshake, tone: "text-ink" },
+    { label: "Mentees supported", value: mentees, icon: HeartHandshake, tone: "text-ink" },
     { label: "Time given", value: minutes < 60 ? `${minutes}m` : `${(minutes / 60).toFixed(minutes % 60 ? 1 : 0)}h`, icon: Sparkles, tone: "text-ink" },
   ];
 
@@ -242,11 +253,12 @@ function MentorBoard({
                       <DateBlock iso={s.start} />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold">
-                          {s.menteeName}, {s.menteeAge} <span className="font-normal text-ink-3">· {s.schoolYear}</span>
+                          {s.menteeName}, {s.menteeAge} <span className="font-normal text-ink-3">· {s.stage}</span>
                         </p>
                         <p className="text-[0.85rem] text-ink-2">{s.topic}</p>
                         <p className="text-[0.8rem] text-ink-3">
-                          {fmtTime(s.start)} · requested by {s.parentName}
+                          {fmtTime(s.start)}
+                          {s.account.role === "parent" && ` · requested by ${s.account.name}`}
                         </p>
                       </div>
                       <ButtonLink href={`/inbox/${s.conversationId}`} size="sm">
@@ -260,19 +272,23 @@ function MentorBoard({
             )}
           </Panel>
 
-          {upcoming[0] && <NextSessionCard s={upcoming[0]} viewer="mentor" now={now} />}
+          {upcoming[0] && <NextSessionCard s={upcoming[0]} side="mentor" now={now} />}
 
           {upcoming.length > 1 && (
             <Panel title="Later sessions" icon={CalendarClock}>
               <ul className="divide-y divide-line">
                 {upcoming.slice(1).map((s) => (
-                  <SessionRow key={s.id} s={s} title={`${s.menteeName}, ${s.menteeAge} · ${s.parentName}`} />
+                  <SessionRow
+                    key={s.id}
+                    s={s}
+                    title={`${s.menteeName}, ${s.menteeAge} · ${s.account.role === "parent" ? s.account.name : s.stage}`}
+                  />
                 ))}
               </ul>
             </Panel>
           )}
 
-          <Panel title="Weekly availability" icon={CalendarClock} subtitle="Families can book any of these times. Changes apply from today.">
+          <Panel title="Weekly availability" icon={CalendarClock} subtitle="Mentees and families can book any of these times. Changes apply from today.">
             <AvailabilityEditor initial={mentor.availability} sessionLength={mentor.sessionLength} />
           </Panel>
         </div>
@@ -375,7 +391,7 @@ function SessionRow({ s, title, photo }: { s: SessionView; title: string; photo?
   );
 }
 
-function NextSessionCard({ s, viewer, now }: { s: SessionView; viewer: "parent" | "mentor"; now: number }) {
+function NextSessionCard({ s, side, now }: { s: SessionView; side: "account" | "mentor"; now: number }) {
   const start = new Date(s.start).getTime();
   const days = Math.floor((start - now) / 86400000);
   const hours = Math.floor(((start - now) % 86400000) / 3600000);
@@ -391,7 +407,7 @@ function NextSessionCard({ s, viewer, now }: { s: SessionView; viewer: "parent" 
         <div className="min-w-0 flex-1">
           <p className="eyebrow text-gold-2">Next session · {until}</p>
           <p className="font-display mt-3 text-[clamp(1.7rem,3vw,2.3rem)] leading-tight">
-            {s.menteeName} meets {viewer === "parent" ? mentorName(s.mentor) : "you"}
+            {side === "mentor" ? `${s.menteeName} meets you` : s.account.role === "mentee" ? `You meet ${mentorName(s.mentor)}` : `${s.menteeName} meets ${mentorName(s.mentor)}`}
           </p>
           <p className="mt-1.5 text-paper/70">
             {fmtDateLong(s.start)} · {fmtTime(s.start)} · {s.topic}
@@ -401,7 +417,7 @@ function NextSessionCard({ s, viewer, now }: { s: SessionView; viewer: "parent" 
               <DoorOpen className="h-4 w-4" /> Session room
             </ButtonLink>
             <ButtonLink href={`/inbox/${s.conversationId}`} variant="outline-light">
-              Message {viewer === "parent" ? s.mentor.firstName : s.parentName.split(" ")[0]}
+              Message {side === "account" ? s.mentor.firstName : s.account.name.split(" ")[0]}
             </ButtonLink>
           </div>
         </div>
@@ -410,14 +426,16 @@ function NextSessionCard({ s, viewer, now }: { s: SessionView; viewer: "parent" 
   );
 }
 
-function EmptyNext() {
+function EmptyNext({ self }: { self: boolean }) {
   return (
     <section className="relative overflow-hidden rounded-[32px] bg-forest p-8 text-paper sm:p-10">
       <AdirePattern className="text-gold opacity-[0.08]" size={44} />
       <div className="relative">
         <p className="eyebrow text-gold-2">Start here</p>
-        <p className="font-display mt-3 text-[2.2rem] leading-tight">Your teen&rsquo;s first mentor is waiting.</p>
-        <p className="mt-2 max-w-md text-paper/70">Find someone who has walked the road they dream of, and request a free 45-minute session.</p>
+        <p className="font-display mt-3 text-[2.2rem] leading-tight">{self ? "Your first mentor is waiting." : "Your child’s first mentor is waiting."}</p>
+        <p className="mt-2 max-w-md text-paper/70">
+          Find someone who has walked the road {self ? "you dream" : "they dream"} of, and request a free 45-minute session.
+        </p>
         <ButtonLink href="/mentors" variant="gold" className="mt-6" arrow>
           Find a mentor
         </ButtonLink>

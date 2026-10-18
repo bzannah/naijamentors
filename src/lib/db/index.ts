@@ -21,7 +21,7 @@ export const MIGRATIONS_DIR = path.join(process.cwd(), "drizzle");
 type Handle = { db: Database; close: () => Promise<void>; embedded: boolean };
 
 // Survives hot reloads in dev so we keep a single connection pool / embedded instance.
-const g = globalThis as unknown as { __villageDb?: Promise<Handle> };
+const g = globalThis as unknown as { __nmDb?: Promise<Handle> };
 
 async function connect(): Promise<Handle> {
   const url = databaseUrl();
@@ -57,11 +57,11 @@ async function connect(): Promise<Handle> {
 }
 
 async function handle() {
-  g.__villageDb ??= connect().catch((err) => {
-    g.__villageDb = undefined;
+  g.__nmDb ??= connect().catch((err) => {
+    g.__nmDb = undefined;
     throw err;
   });
-  return g.__villageDb;
+  return g.__nmDb;
 }
 
 /** The app's database. Connects lazily on first use. */
@@ -71,9 +71,9 @@ export async function getDb(): Promise<Database> {
 
 /** Close the connection (used by CLI scripts so the process can exit). */
 export async function closeDb() {
-  if (!g.__villageDb) return;
-  const h = await g.__villageDb;
-  g.__villageDb = undefined;
+  if (!g.__nmDb) return;
+  const h = await g.__nmDb;
+  g.__nmDb = undefined;
   await h.close();
 }
 

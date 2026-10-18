@@ -8,14 +8,14 @@ import { GuideNav, type GuideSection } from "./GuideNav";
 
 export const metadata: Metadata = {
   title: "The mentorship guide",
-  description: "Clear expectations for mentors, teenagers and parents, so every Village session is safe, warm and worth it.",
+  description: "Clear expectations for mentors, mentees and parents, so every Naija Mentors session is safe, warm and worth it.",
 };
 
 const SECTIONS: GuideSection[] = [
   { id: "why", label: "Why this matters" },
   { id: "principles", label: "Five principles" },
   { id: "mentors", label: "For mentors" },
-  { id: "mentees", label: "For teens" },
+  { id: "mentees", label: "For mentees" },
   { id: "parents", label: "For parents" },
   { id: "first-session", label: "The first session" },
   { id: "arc", label: "The three-month arc" },
@@ -34,18 +34,18 @@ export default function GuidePage() {
         <AdireLines className="text-paper/[0.06]" />
         <div className="pointer-events-none absolute -top-40 right-[-10%] h-[620px] w-[620px] rounded-full bg-[radial-gradient(closest-side,rgb(195_154_75/0.3),transparent)]" />
         <div className="relative mx-auto max-w-[1320px] px-5 pt-16 pb-20 sm:px-8 sm:pt-24 sm:pb-28">
-          <p className="eyebrow animate-fade-up text-gold-2">The Village guide · 12 minute read</p>
+          <p className="eyebrow animate-fade-up text-gold-2">The Naija Mentors guide · 12 minute read</p>
           <h1 className="font-display animate-fade-up mt-6 max-w-4xl text-[clamp(3rem,7.4vw,6.4rem)] leading-[0.94] tracking-[-0.045em] text-balance" style={{ animationDelay: "80ms" }}>
             Mentorship, <em className="text-gold-2">done properly.</em>
           </h1>
           <p className="animate-fade-up mt-7 max-w-2xl text-[1.15rem] leading-relaxed text-paper/75" style={{ animationDelay: "160ms" }}>
-            Good intentions are where mentorship starts, not where it ends. This guide sets out what mentors, teenagers and
+            Good intentions are where mentorship starts, not where it ends. This guide sets out what mentors, mentees and
             parents can expect from each other, so every conversation is safe, warm and genuinely useful.
           </p>
           <div className="animate-fade-up mt-10 flex flex-wrap gap-3" style={{ animationDelay: "240ms" }}>
             {[
               { href: "#mentors", label: "I'm a mentor" },
-              { href: "#mentees", label: "I'm a teenager" },
+              { href: "#mentees", label: "I'm a mentee" },
               { href: "#parents", label: "I'm a parent" },
             ].map((l) => (
               <a key={l.href} href={l.href} className="rounded-full bg-paper/10 px-5 py-3 text-[0.95rem] font-semibold ring-1 ring-paper/20 transition hover:bg-paper hover:text-indigo">
@@ -71,9 +71,9 @@ export default function GuidePage() {
                 everything. A word of encouragement. A door held open. A warning we&rsquo;re glad we heeded.
               </p>
               <p>
-                Our children are growing up in Britain surrounded by Nigerian excellence: consultants, engineers, barristers,
-                founders, nurses, artists. Yet many never get to sit across from one and ask,{" "}
-                <strong>&ldquo;How did you do it?&rdquo;</strong> Village exists to make that conversation ordinary.
+                Our young people are growing up, studying and starting careers in Britain surrounded by Nigerian excellence:
+                consultants, engineers, barristers, founders, nurses, artists. Yet many never get to sit across from one and ask,{" "}
+                <strong>&ldquo;How did you do it?&rdquo;</strong> Naija Mentors exists to make that conversation ordinary.
               </p>
               <p>
                 A mentor is not a tutor, a therapist or a replacement parent. A mentor is a trusted guide who has walked a
@@ -86,11 +86,11 @@ export default function GuidePage() {
           <Section id="principles" eyebrow="02" title={<>Five principles we <em>all</em> keep.</>}>
             <div className="grid gap-3 sm:grid-cols-2">
               {[
-                { icon: Ear, title: "Listen first", body: "The teenager's goals lead. Mentors ask more than they tell, and resist the urge to fix everything." },
+                { icon: Ear, title: "Listen first", body: "The mentee's goals lead. Mentors ask more than they tell, and resist the urge to fix everything." },
                 { icon: Hourglass, title: "Show up, consistently", body: "Reliability builds trust faster than brilliance. Be on time, keep commitments, give notice if you can't." },
                 { icon: Lightbulb, title: "Be honest", body: "Share the setbacks as well as the successes. Young people learn more from how you recovered than from your CV." },
                 { icon: Sprout, title: "Small steps, often", body: "Every session ends with one achievable action. Progress is built in inches, not leaps." },
-                { icon: ShieldCheck, title: "Safety, always", body: "Everything happens on Village, with parents informed. Clear boundaries protect everyone, mentors included." },
+                { icon: ShieldCheck, title: "Safety, always", body: "Everything happens on Naija Mentors, with parents informed for under-18s. Clear boundaries protect everyone, mentors included." },
               ].map((p, i) => (
                 <Reveal key={p.title} delay={i * 60} className={i === 4 ? "sm:col-span-2" : ""}>
                   <div className="h-full rounded-[24px] bg-card p-6 ring-1 ring-line">
@@ -134,29 +134,33 @@ export default function GuidePage() {
                 "Tell us if you're worried about anything, however small",
               ]}
               donts={[
-                "Do their homework or write their personal statement",
-                "Contact them outside Village, or follow them on social media",
-                "Offer money, gifts or lifts, or meet in person without the family",
+                "Do their homework, or write their personal statement or CV for them",
+                "Contact them outside Naija Mentors, or follow them on social media",
+                "Offer money, gifts or lifts, or arrange to meet in private",
                 "Promise to keep secrets",
                 "Push your own career path as the only good one",
-                "Criticise their parents, school or faith",
+                "Criticise their family, school, employer or faith",
               ]}
             />
           </Section>
 
           {/* Mentees */}
-          <Section id="mentees" eyebrow="04 · For teens" title={<>Getting the most from <em>your</em> mentor.</>}>
+          <Section id="mentees" eyebrow="04 · For mentees" title={<>Getting the most from <em>your</em> mentor.</>}>
             <div className="prose-village">
               <p>
                 Your mentor is giving you their time because they believe in you. You don&rsquo;t have to be confident, sure of your
-                future, or top of the class. You just have to be curious and willing to try.
+                future, or top of anything. You just have to be curious and willing to try.
+              </p>
+              <p>
+                <strong>Under 18?</strong> A parent or guardian books your sessions and can see your messages. <strong>18 or over?</strong>{" "}
+                You have your own account: you choose your mentor, book the times and set the pace. The same boundaries apply either way.
               </p>
             </div>
             <Timeline
               steps={[
                 { label: "Before", items: ["Write down three questions, even if they feel silly", "Find a quiet spot with good light", "Test your camera and microphone"] },
                 { label: "During", items: ["Camera on, phone away", "Be honest about what you don't know", "Take notes: you'll forget more than you think"] },
-                { label: "After", items: ["Do the one small step you agreed", "Send a short thank-you message", "Tell a parent if anything felt uncomfortable"] },
+                { label: "After", items: ["Do the one small step you agreed", "Send a short thank-you message", "Tell a parent or our team if anything felt uncomfortable"] },
               ]}
             />
             <Callout tone="gold" title="Remember">
@@ -165,21 +169,22 @@ export default function GuidePage() {
           </Section>
 
           {/* Parents */}
-          <Section id="parents" eyebrow="05 · For parents" title={<>Your role: <em>present,</em> not in charge.</>}>
+          <Section id="parents" eyebrow="05 · For parents of under-18s" title={<>Your role: <em>present,</em> not in charge.</>}>
             <div className="prose-village">
               <p>
                 You know your child better than anyone. Mentors bring something different: distance, a fresh perspective and
                 the credibility of someone who isn&rsquo;t their parent. The magic happens when both work together.
               </p>
+              <p>Once your child turns 18 they can open their own account, and carry on with the same mentor if they like.</p>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {[
-                { title: "Set it up", body: "Read this guide together. Help your teen choose a mentor and write the first request." },
+                { title: "Set it up", body: "Read this guide together. Help your child choose a mentor and write the first request." },
                 { title: "Stay nearby", body: "For under-16s, be in the room for introductions and within earshot throughout." },
                 { title: "Step back", body: "Let your child do the talking. Resist answering for them, even when it's tempting." },
                 { title: "Follow up", body: "Ask what they learnt, not what they said. Encourage the agreed next step." },
                 { title: "Give feedback", body: "Tell the mentor what worked. Tell us if anything didn't." },
-                { title: "Keep it here", body: "Keep messages and links on Village, where they're safe and visible to you." },
+                { title: "Keep it here", body: "Keep messages and links on Naija Mentors, where they're safe and visible to you." },
               ].map((c, i) => (
                 <Reveal key={c.title} delay={i * 50}>
                   <div className="h-full rounded-[22px] bg-paper-2/70 p-5 ring-1 ring-line">
@@ -209,10 +214,10 @@ export default function GuidePage() {
               </div>
               <ol className="divide-y divide-line">
                 {[
-                  { t: "0–5", c: "bg-gold-2", title: "Hellos", body: "Parent and teen say hello together. The mentor explains how sessions work and what's okay to talk about." },
+                  { t: "0–5", c: "bg-gold-2", title: "Hellos", body: "Everyone says hello; for under-16s, a parent joins the start. The mentor explains how sessions work and what's okay to talk about." },
                   { t: "5–15", c: "bg-clay", title: "The mentor's story", body: "Where they grew up, what they studied, and the moments that changed their direction. Keep it human." },
-                  { t: "15–35", c: "bg-forest-3", title: "The teen's world", body: "What they enjoy, what they're curious about, what feels hard. The mentor listens and asks follow-up questions." },
-                  { t: "35–45", c: "bg-indigo-2", title: "One small step", body: "Agree a single, achievable action and a date for the next session. Write it in the Village chat." },
+                  { t: "15–35", c: "bg-forest-3", title: "The mentee's world", body: "What they enjoy, what they're working towards, what feels hard. The mentor listens and asks follow-up questions." },
+                  { t: "35–45", c: "bg-indigo-2", title: "One small step", body: "Agree a single, achievable action and a date for the next session. Write it in your Naija Mentors chat." },
                 ].map((r) => (
                   <li key={r.t} className="flex gap-5 p-5 sm:p-6">
                     <div className="w-16 shrink-0">
@@ -233,13 +238,13 @@ export default function GuidePage() {
           {/* Arc */}
           <Section id="arc" eyebrow="07" title={<>A three-month <em>arc.</em></>}>
             <div className="prose-village">
-              <p>Most Village mentorships run for an initial three months. That&rsquo;s long enough to build trust, short enough to stay focused.</p>
+              <p>Most mentorships here run for an initial three months. That&rsquo;s long enough to build trust, short enough to stay focused.</p>
             </div>
             <div className="relative mt-10 grid gap-4 sm:grid-cols-3">
               <div className="absolute top-6 right-[16%] left-[16%] hidden h-px bg-line-2 sm:block" />
               {[
-                { m: "Month 1", title: "Get to know", body: "Build trust. Understand the teen's interests, strengths and worries. Agree what success looks like." },
-                { m: "Month 2", title: "Explore", body: "Investigate options: courses, careers, work experience, competitions. Try one new thing." },
+                { m: "Month 1", title: "Get to know", body: "Build trust. Understand the mentee's interests, strengths and worries. Agree what success looks like." },
+                { m: "Month 2", title: "Explore", body: "Investigate options: courses, careers, roles, work experience, competitions. Try one new thing." },
                 { m: "Month 3", title: "Act & reflect", body: "Take a concrete step: an application, a project, a conversation. Then look back at how far you've come." },
               ].map((s, i) => (
                 <Reveal key={s.m} delay={i * 100} className="relative text-center">
@@ -258,13 +263,13 @@ export default function GuidePage() {
           <Section id="questions" eyebrow="08" title={<>Questions that <em>open doors.</em></>}>
             <div className="grid gap-5 sm:grid-cols-2">
               <QuestionList
-                title="Teens might ask"
+                title="Mentees might ask"
                 items={[
                   "What were you like at my age?",
                   "What's a normal day in your job?",
-                  "What do you wish you'd known at sixteen?",
+                  "What do you wish you'd known when you were starting out?",
                   "What was your biggest setback?",
-                  "How did you choose your subjects?",
+                  "How did you choose your path?",
                   "What could I do this month to get started?",
                 ]}
               />
@@ -272,7 +277,7 @@ export default function GuidePage() {
                 title="Mentors might ask"
                 items={[
                   "What do you enjoy so much you lose track of time?",
-                  "Which lesson do you look forward to most?",
+                  "Which part of your week do you look forward to most?",
                   "Who do you admire, and why?",
                   "What feels hardest right now?",
                   "If nothing could go wrong, what would you try?",
@@ -285,17 +290,17 @@ export default function GuidePage() {
           {/* Boundaries */}
           <Section id="boundaries" eyebrow="09" title={<>The <em>non-negotiables.</em></>}>
             <div className="prose-village">
-              <p>These rules protect young people and mentors alike. Breaking them means leaving Village.</p>
+              <p>These rules protect young people and mentors alike. Breaking them means leaving Naija Mentors.</p>
             </div>
             <div className="relative mt-8 overflow-hidden rounded-[26px] bg-forest p-7 text-paper sm:p-9">
               <AdirePattern className="text-gold opacity-[0.07]" size={40} />
               <ul className="relative grid gap-4 sm:grid-cols-2">
                 {[
-                  "All messages and video calls happen on Village",
+                  "All messages and video calls happen on Naija Mentors",
                   "No private phone numbers, emails or social media",
-                  "No in-person meetings without the family's agreement and presence",
+                  "No private in-person meetings, and never without the family for under-18s",
                   "No gifts, money or favours in either direction",
-                  "Parents can see every message on their account",
+                  "Parents see every message for under-18s",
                   "Sessions involving under-16s have a parent nearby",
                 ].map((r) => (
                   <li key={r} className="flex gap-3 text-[0.98rem] leading-snug">
@@ -330,10 +335,11 @@ export default function GuidePage() {
                 </div>
               ))}
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Helpline icon={AlertTriangle} label="Immediate danger" value="999" />
-              <Helpline icon={Phone} label="Childline (for young people)" value="0800 1111" />
-              <Helpline icon={ShieldCheck} label="Village safeguarding lead" value={safeguardingEmail()} small />
+              <Helpline icon={Phone} label="Childline (under 19)" value="0800 1111" />
+              <Helpline icon={Phone} label="Samaritans (any age, 24/7)" value="116 123" />
+              <Helpline icon={ShieldCheck} label="Naija Mentors safeguarding lead" value={safeguardingEmail()} small />
             </div>
           </Section>
 
@@ -353,7 +359,7 @@ export default function GuidePage() {
           </Section>
 
           {/* Pledge */}
-          <Section id="pledge" eyebrow="12" title={<>The Village <em>pledge.</em></>}>
+          <Section id="pledge" eyebrow="12" title={<>The mentor <em>pledge.</em></>}>
             <div className="grid gap-5 sm:grid-cols-2">
               <Pledge
                 who="Mentors"
@@ -361,12 +367,12 @@ export default function GuidePage() {
                   "I will show up, on time and prepared.",
                   "I will listen more than I speak.",
                   "I will be honest about my journey.",
-                  "I will keep every conversation on Village.",
+                  "I will keep every conversation on Naija Mentors.",
                   "I will put the young person's safety first.",
                 ]}
               />
               <Pledge
-                who="Teens"
+                who="Mentees"
                 lines={[
                   "I will come with questions.",
                   "I will be honest, even when I'm unsure.",

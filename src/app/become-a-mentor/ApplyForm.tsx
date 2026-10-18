@@ -167,7 +167,7 @@ export function ApplyForm() {
               <span className="text-[0.88rem] text-ink-2">
                 <strong className="text-ink">{photo ? "Looking good." : "Add a warm, well-lit photo."}</strong>
                 <br />
-                Parents are far more likely to reach out when they can see you. JPG or PNG.
+                People are far more likely to reach out when they can see you. JPG or PNG.
               </span>
               <input
                 type="file"
@@ -185,8 +185,8 @@ export function ApplyForm() {
 
         {/* Step 3 */}
         <div className={cn("mt-7 grid gap-4", step !== 2 && "hidden")}>
-          <Field label="Your headline" hint="One sentence a parent will remember">
-            <input name="headline" className="field" placeholder="e.g. I was the first in my family to go to university. I'll show your teen the way." />
+          <Field label="Your headline" hint="One sentence people will remember">
+            <input name="headline" className="field" placeholder="e.g. I was the first in my family to go to university. I'll show you the way." />
           </Field>
           <Field label="About you" hint="Two or three sentences: what you do and why you mentor">
             <textarea name="bio" rows={5} className={cn("field", bad("bio"))} />
@@ -202,7 +202,7 @@ export function ApplyForm() {
             <div className="flex flex-wrap gap-2">
               {AGE_GROUPS.map((a) => (
                 <label key={a} className="cursor-pointer">
-                  <input type="checkbox" name="ageGroups" value={a} defaultChecked={a !== "11–13"} className="peer sr-only" />
+                  <input type="checkbox" name="ageGroups" value={a} defaultChecked={a !== "11–13" && a !== "25–30"} className="peer sr-only" />
                   <span className="inline-block rounded-full px-4 py-2 text-[0.88rem] font-semibold ring-1 ring-line-2 transition peer-checked:bg-forest peer-checked:text-paper peer-checked:ring-forest">
                     {a}
                   </span>
@@ -221,8 +221,8 @@ export function ApplyForm() {
           <label className={cn("mt-6 flex cursor-pointer gap-3 rounded-2xl bg-paper-2/70 p-5 text-[0.9rem] leading-relaxed text-ink-2", state?.field === "pledge" && "ring-1 ring-clay")}>
             <input type="checkbox" name="pledge" className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-forest)]" />
             <span>
-              <strong className="text-ink">I take the Village mentor pledge.</strong> I&rsquo;ll show up prepared, keep every conversation
-              on Village, follow the guide, and complete an enhanced DBS check before my first session.
+              <strong className="text-ink">I take the Naija Mentors pledge.</strong> I&rsquo;ll show up prepared, keep every conversation
+              on Naija Mentors, follow the guide, and complete an enhanced DBS check before my first session.
             </span>
           </label>
         </div>

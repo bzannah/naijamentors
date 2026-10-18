@@ -9,7 +9,7 @@ import { users } from "./db/schema";
 import { sessionSecret } from "./env";
 import type { Role, User } from "./types";
 
-const COOKIE = "village_session";
+const COOKIE = "nm_session";
 const MAX_AGE = 60 * 60 * 24 * 30;
 
 function sign(value: string) {

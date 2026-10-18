@@ -27,7 +27,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/sessions/[id
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${s.id}@village`,
+    `UID:${s.id}@naijamentors.com`,
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(end)}`,
@@ -47,7 +47,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/sessions/[id
   return new Response(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="village-session-${s.menteeName.toLowerCase()}.ics"`,
+      "Content-Disposition": `attachment; filename="naija-mentors-session-${s.menteeName.toLowerCase()}.ics"`,
     },
   });
 }

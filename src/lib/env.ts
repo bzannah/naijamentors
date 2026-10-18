@@ -22,7 +22,7 @@ export function databaseUrl() {
   return required("DATABASE_URL", "pglite://data/pglite");
 }
 
-const DEV_SECRET = "village-dev-secret-change-me-in-production";
+const DEV_SECRET = "naija-mentors-dev-secret-change-me-in-production";
 
 /** Signs session cookies. At least 32 characters in production. */
 export function sessionSecret() {
@@ -33,17 +33,17 @@ export function sessionSecret() {
 
 /** Where families and mentors report a concern. Shown across the site. */
 export function safeguardingEmail() {
-  return value("SAFEGUARDING_EMAIL") ?? "safeguarding@village.demo";
+  return value("SAFEGUARDING_EMAIL") ?? "safeguarding@naijamentors.com";
 }
 
-/** Public origin used for links in emails, e.g. https://village.org.uk */
+/** Public origin used for links in emails, e.g. https://naijamentors.com */
 export function appUrl() {
   return required("APP_URL", "http://localhost:3000").replace(/\/$/, "");
 }
 
 export const email = {
   resendApiKey: () => value("RESEND_API_KEY"),
-  from: () => value("EMAIL_FROM") ?? "Village <hello@village.demo>",
+  from: () => value("EMAIL_FROM") ?? "Naija Mentors <hello@naijamentors.com>",
   replyTo: () => value("EMAIL_REPLY_TO"),
 };
 
