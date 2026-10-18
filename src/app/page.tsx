@@ -41,7 +41,7 @@ export default async function Home() {
     heritages: new Set(mentors.map((m) => m.heritage.split(" · ")[0].split("-")[0])).size,
   };
 
-  const featured = ["chiamaka-obi", "chukwuemeka-nnamdi", "ngozi-eze-williams", "ifeanyi-okafor", "zainab-yusuf", "tunde-adebayo", "adaeze-nwosu", "osaze-ehigiator"].map(by);
+  const featured = ["chiamaka-obi", "chukwuemeka-nnamdi", "ngozi-eze-williams", "mujahid-okafor", "zainab-yusuf", "tunde-adebayo", "adaeze-nwosu", "osaze-ehigiator"].map(by);
 
   return (
     <>
@@ -49,7 +49,7 @@ export default async function Home() {
         feature={by("chiamaka-obi")}
         left={by("chukwuemeka-nnamdi")}
         right={by("kemi-oyelaran")}
-        faces={["tunde-adebayo", "zainab-yusuf", "ifeanyi-okafor", "adaeze-nwosu", "abubakar-sani"].map(by)}
+        faces={["tunde-adebayo", "zainab-yusuf", "mujahid-okafor", "adaeze-nwosu", "bakari-sani"].map(by)}
         stats={stats}
         sessionAt={demoSessionAt}
       />
@@ -58,7 +58,7 @@ export default async function Home() {
 
       <Untapped mentors={mentors.length} fields={new Set(mentors.map((m) => m.field)).size} />
 
-      <HowItWorks mentors={[by("chiamaka-obi"), by("abubakar-sani"), by("aisha-bello")]} />
+      <HowItWorks mentors={[by("chiamaka-obi"), by("bakari-sani"), by("aisha-bello")]} />
 
       {/* Featured mentors */}
       <section className="relative bg-paper-2/60 py-24 sm:py-32">
@@ -94,7 +94,7 @@ export default async function Home() {
 
       <Safety />
 
-      <MentorCta faces={[by("osasu-igbinedion"), by("olumide-bakare"), by("ekaette-effiong"), by("efe-okoro")]} />
+      <MentorCta faces={[by("osasu-igbinedion"), by("babagana-bakare"), by("ekaette-effiong"), by("efe-okoro")]} />
     </>
   );
 }

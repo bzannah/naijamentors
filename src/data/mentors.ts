@@ -2,10 +2,12 @@ import type { FieldKey, Mentor, WeeklySlot } from "@/lib/types";
 
 /*
   Sample mentors used to seed a fresh database.
-  The people are fictional; the portraits are free-licence Unsplash photos used as placeholders.
+  Most of the people are fictional, with free-licence Unsplash photos as placeholders. Seven profiles
+  carry real mentors' first names and photos (public/mentors); their other details are still placeholders.
 */
 
 const U = (id: string) => `https://images.unsplash.com/${id}`;
+const P = (file: string) => `/mentors/${file}`;
 
 type Seed = Omit<
   Mentor,
@@ -228,7 +230,7 @@ const SEEDS: Seed[] = [
   },
   {
     honorific: "Dr.",
-    firstName: "Abubakar",
+    firstName: "Bakari",
     lastName: "Sani",
     role: "Consultant Cardiologist",
     org: "NHS · Leicester",
@@ -257,7 +259,7 @@ const SEEDS: Seed[] = [
       "I mentor because young people today are under enormous pressure to have everything figured out at sixteen. I want them to know that a good life is built slowly.",
     ],
     quote: "Haƙuri maganin duniya — patience is the cure for the world.",
-    photo: U("photo-1666887360369-1901f341fdad"),
+    photo: P("bakari.webp"),
     ageGroups: ["14–16", "17–18", "19–24"],
     slots: "Sat 10:00, Sat 11:00, Sun 14:00",
     replies: "Usually replies within two days",
@@ -297,7 +299,7 @@ const SEEDS: Seed[] = [
     slots: "Tue 20:00, Sun 11:00, Sun 12:00",
   },
   {
-    firstName: "Ifeanyi",
+    firstName: "Mujahid",
     lastName: "Okafor",
     role: "Chartered Civil Engineer (CEng)",
     org: "Major rail infrastructure programme",
@@ -326,7 +328,7 @@ const SEEDS: Seed[] = [
       "Engineering is one of the most secure, well-paid and meaningful careers in Britain, and the apprenticeship routes are criminally under-explained. I fix that.",
     ],
     quote: "If you can take something apart, you can learn to build it better.",
-    photo: U("photo-1688841747582-41097036109d"),
+    photo: P("mujahid.webp"),
     ageGroups: ["11–13", "14–16", "17–18", "19–24"],
     slots: "Mon 18:30, Wed 18:30, Sat 12:00",
   },
@@ -365,7 +367,7 @@ const SEEDS: Seed[] = [
     slots: "Thu 19:00, Sun 17:00",
   },
   {
-    firstName: "Olumide",
+    firstName: "Babagana",
     lastName: "Bakare",
     role: "Finance Director, Chartered Accountant (ACA)",
     org: "Logistics group · Milton Keynes",
@@ -394,7 +396,7 @@ const SEEDS: Seed[] = [
       "I mentor because I wish someone had told me at fifteen that the boring-sounding jobs are often the ones with the most freedom.",
     ],
     quote: "Small habits, compounded, beat big talent left alone.",
-    photo: U("photo-1605602517387-ec78b947335e"),
+    photo: P("babagana.webp"),
     ageGroups: ["17–18", "19–24", "25–30"],
     slots: "Tue 19:30, Sat 09:00",
   },
@@ -532,7 +534,7 @@ const SEEDS: Seed[] = [
       "Young people hear plenty about influencers and very little about the people who quietly build real businesses. I'd like to change that.",
     ],
     quote: "Reputation is the only asset you can't buy back.",
-    photo: U("photo-1637684666993-71805a866275"),
+    photo: P("ibrahim.webp"),
     ageGroups: ["17–18", "19–24", "25–30"],
     slots: "Mon 20:00, Sat 13:00",
   },
@@ -606,7 +608,7 @@ const SEEDS: Seed[] = [
   },
   {
     honorific: "Dr.",
-    firstName: "Terver",
+    firstName: "Terry",
     lastName: "Agber",
     role: "Lecturer in Economics",
     org: "University of Manchester",
@@ -635,7 +637,7 @@ const SEEDS: Seed[] = [
       "I mentor because choosing a university is one of the biggest financial decisions a young person makes, and most do it on vibes.",
     ],
     quote: "Ask 'why' one more time than feels polite.",
-    photo: U("photo-1649532354766-2d845cf3f997"),
+    photo: P("terry.webp"),
     ageGroups: ["17–18", "19–24"],
     slots: "Mon 17:00, Thu 17:00",
   },
@@ -674,7 +676,7 @@ const SEEDS: Seed[] = [
     slots: "Wed 16:30, Sat 15:00",
   },
   {
-    firstName: "Segun",
+    firstName: "Alamin",
     lastName: "Ajayi",
     role: "Senior Policy Adviser",
     org: "UK Civil Service · Westminster",
@@ -703,7 +705,7 @@ const SEEDS: Seed[] = [
       "Public service is one of the most powerful ways to help our communities, and too few of us know the way in.",
     ],
     quote: "If you're not at the table, you're on the menu.",
-    photo: U("photo-1616805765352-beedbad46b2a"),
+    photo: P("alamin.webp"),
     ageGroups: ["17–18", "19–24", "25–30"],
     slots: "Thu 19:30, Sun 15:30",
   },
@@ -742,7 +744,7 @@ const SEEDS: Seed[] = [
     slots: "Mon 18:00, Wed 18:00, Sun 11:00",
   },
   {
-    firstName: "Kelechi",
+    firstName: "Umar",
     lastName: "Uzor",
     role: "Head of Cyber Security",
     org: "Retail group · Reading",
@@ -771,7 +773,7 @@ const SEEDS: Seed[] = [
       "Cyber security needs people who think differently. Our community is full of them.",
     ],
     quote: "Curiosity plus ethics equals a career.",
-    photo: U("photo-1686628269259-84b867e8c036"),
+    photo: P("umar.webp"),
     ageGroups: ["14–16", "17–18", "19–24", "25–30"],
     slots: "Tue 20:00, Thu 20:00",
   },
