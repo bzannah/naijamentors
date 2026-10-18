@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LayoutDashboard, LogOut, Menu, MessageCircle, ShieldCheck, UserRound, X } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Menu, MessageCircle, PenLine, Settings, ShieldCheck, UserRound, X } from "lucide-react";
 import { signOut } from "@/app/actions";
 import { cn } from "@/lib/cn";
 import type { Role } from "@/lib/types";
@@ -145,8 +145,12 @@ export function HeaderClient({ user, unread }: { user: HeaderUser; unread: numbe
                           </>
                         )}
                         {user.profileHref && (
-                          <MenuLink href={user.profileHref} icon={<UserRound className="h-4 w-4" />}>My public profile</MenuLink>
+                          <>
+                            <MenuLink href={user.profileHref} icon={<UserRound className="h-4 w-4" />}>My public profile</MenuLink>
+                            <MenuLink href="/account/profile" icon={<PenLine className="h-4 w-4" />}>Edit my profile</MenuLink>
+                          </>
                         )}
+                        <MenuLink href="/account" icon={<Settings className="h-4 w-4" />}>Account settings</MenuLink>
                         <form action={signOut}>
                           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.9rem] text-ink-2 transition hover:bg-paper-2 hover:text-ink">
                             <LogOut className="h-4 w-4" /> Sign out

@@ -34,6 +34,8 @@ export const users = pgTable(
     // Always stored lower-case.
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
+    // Set when the team issues a password (see src/lib/accounts.ts). The person chooses their own on next sign-in.
+    temporaryPassword: boolean("temporary_password").notNull().default(false),
     createdAt: at("created_at").default(sql`now()`),
     // Points at mentors.id. Not a foreign key because mentors.user_id already points back here.
     mentorId: text("mentor_id"),

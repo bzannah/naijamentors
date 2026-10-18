@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, BadgeCheck, BookOpen, CalendarClock, Clock, DoorOpen, HeartHandshake, Inbox, Sparkles, Users } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, BookOpen, CalendarClock, Clock, DoorOpen, HeartHandshake, Inbox, PenLine, Sparkles, Users } from "lucide-react";
 import { MentorCard } from "@/components/MentorCard";
 import { AdirePattern } from "@/components/Patterns";
 import { Avatar, Portrait } from "@/components/Portrait";
@@ -41,6 +41,21 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
       <section className="grain relative overflow-hidden border-b border-line bg-paper-2/60">
         <AdirePattern className="text-gold opacity-[0.1] [mask-image:linear-gradient(90deg,transparent_45%,#000)]" size={46} />
         <div className="relative mx-auto max-w-[1320px] px-5 pt-12 pb-12 sm:px-8 sm:pt-16">
+          {sp.welcome === "setup" && user.role === "mentor" && (
+            <div className="animate-pop mb-8 max-w-2xl rounded-[24px] bg-forest p-5 text-paper shadow-float">
+              <p className="font-display text-[1.4rem]">You&rsquo;re all set, {first}. 🎉</p>
+              <p className="mt-1 text-[0.92rem] text-paper/75">
+                Your sign-in details are saved. Two things before mentees can book you: check your profile reads the way you&rsquo;d
+                like, and add the times you&rsquo;re free below.
+              </p>
+              <Link
+                href="/account/profile"
+                className="mt-4 inline-flex h-10 items-center gap-2 rounded-full bg-gold-2 px-4 text-[0.88rem] font-semibold text-ink transition hover:bg-gold-soft"
+              >
+                <PenLine className="h-4 w-4" /> Review my profile
+              </Link>
+            </div>
+          )}
           {sp.welcome === "mentor" && (
             <div className="animate-pop mb-8 max-w-2xl rounded-[24px] bg-forest p-5 text-paper shadow-float">
               <p className="font-display text-[1.4rem]">Welcome to the village, {first}. 🎉</p>
@@ -99,8 +114,8 @@ function AccountBoard({
   const next = upcoming[0];
   const self = user.role === "mentee";
   const recommended = mentors
-    .filter((m) => m.status === "active" && !convos.some((c) => c.conversation.mentorId === m.id))
-    .sort((a, b) => (a.nextSlot ?? "9").localeCompare(b.nextSlot ?? "9"))
+    .filter((m) => !convos.some((c) => c.conversation.mentorId === m.id))
+    .sort((a, b) => (a.nextSlot ?? "9").localeCompare(b.nextSlot ?? "9") || Number(b.status === "active") - Number(a.status === "active"))
     .slice(0, 3);
 
   return (
@@ -305,6 +320,9 @@ function MentorBoard({
                 </p>
               </div>
             </div>
+            <Link href="/account/profile" className="flex items-center justify-between border-t border-line px-5 py-3.5 text-[0.88rem] font-semibold text-forest transition hover:bg-paper-2/60">
+              Edit my profile <PenLine className="h-4 w-4" />
+            </Link>
             <Link href={`/mentors/${mentor.slug}`} className="flex items-center justify-between border-t border-line px-5 py-3.5 text-[0.88rem] font-semibold text-forest transition hover:bg-paper-2/60">
               View my public profile <ArrowUpRight className="h-4 w-4" />
             </Link>

@@ -270,17 +270,11 @@ export async function sessionById(user: SafeUser, id: string): Promise<SessionVi
   return (await sessionViews(user, eq(sessions.id, id)))[0] ?? null;
 }
 
-/** Start time of any session. The landing page uses the demo session to show a real countdown. */
-export async function sessionStart(id: string) {
-  const [row] = await (await getDb()).select({ start: sessions.start }).from(sessions).where(eq(sessions.id, id)).limit(1);
-  return row?.start;
-}
-
 /* ---------------- Admin ---------------- */
 
-export type MentorReview = Mentor & { email: string; sessionCount: number };
+export type MentorReview = Mentor & { email: string; temporaryPassword: boolean; sessionCount: number };
 
-/** Every mentor with their sign-in email and how many live or past sessions they hold. Pending first. */
+/** Every mentor with their sign-in details and how many live or past sessions they hold. Pending first. */
 export async function mentorsForReview(): Promise<MentorReview[]> {
   const db = await getDb();
   const sessionCount = db
@@ -290,10 +284,10 @@ export async function mentorsForReview(): Promise<MentorReview[]> {
     .groupBy(sessions.mentorId)
     .as("sc");
   const rows = await db
-    .select({ m: mentors, email: users.email, n: sessionCount.n })
+    .select({ m: mentors, email: users.email, temporaryPassword: users.temporaryPassword, n: sessionCount.n })
     .from(mentors)
     .innerJoin(users, eq(users.id, mentors.userId))
     .leftJoin(sessionCount, eq(sessionCount.mentorId, mentors.id))
     .orderBy(sql`${mentors.status} = 'pending' desc`, desc(mentors.joined));
-  return rows.map(({ m, email, n }) => ({ ...toMentor(m), email, sessionCount: Number(n ?? 0) }));
+  return rows.map(({ m, email, temporaryPassword, n }) => ({ ...toMentor(m), email, temporaryPassword, sessionCount: Number(n ?? 0) }));
 }

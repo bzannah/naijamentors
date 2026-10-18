@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import { alias, type AnyPgColumn } from "drizzle-orm/pg-core";
+import { isPlaceholderEmail } from "./accounts";
 import { getDb } from "./db";
 import { toMentor } from "./db/mappers";
 import { conversations, mentors, messages, sessions, users } from "./db/schema";
@@ -55,6 +56,8 @@ async function sessionContext(sessionId: string) {
 }
 
 async function send(to: string, subject: string, content: EmailContent, idempotencyKey?: string) {
+  // A mentor the team set up who hasn't signed in yet has no real address to write to.
+  if (isPlaceholderEmail(to)) return false;
   const { html, text } = renderEmail(content);
   return deliver({ to, subject, html, text, idempotencyKey });
 }

@@ -34,8 +34,13 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
   const isOwner = user?.id === m.userId;
 
   const similar = (await listMentors())
-    .filter((x) => x.id !== m.id && x.status === "active")
-    .sort((a, b) => Number(b.field === m.field) - Number(a.field === m.field) || Number(b.region === m.region) - Number(a.region === m.region))
+    .filter((x) => x.id !== m.id)
+    .sort(
+      (a, b) =>
+        Number(b.field === m.field) - Number(a.field === m.field) ||
+        Number(b.status === "active") - Number(a.status === "active") ||
+        Number(b.region === m.region) - Number(a.region === m.region),
+    )
     .slice(0, 4);
 
   const existing = user && canBook(user.role) ? await conversationBetween(user.id, m.id) : null;
@@ -85,7 +90,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
                 <Fact icon={MapPin}>{m.city}</Fact>
                 <Fact icon={Users}>{m.heritage}</Fact>
                 <Fact icon={Languages}>{m.languages.join(", ")}</Fact>
-                <Fact icon={Clock3}>{m.years} years in the field</Fact>
+                {m.years > 0 && <Fact icon={Clock3}>{m.years} years in the field</Fact>}
               </div>
 
               <blockquote className="font-display relative mt-9 max-w-2xl border-l-2 border-gold pl-6 text-[clamp(1.35rem,2.2vw,1.85rem)] leading-[1.3] text-ink-2 italic text-balance">
@@ -106,7 +111,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
                       Next available <strong className="font-semibold text-ink">{fmtNext(slots[0].start)}</strong>
                     </span>
                   ) : (
-                    <span className="text-[0.92rem] text-ink-3">Fully booked right now</span>
+                    <span className="text-[0.92rem] text-ink-3">{m.availability.length ? "Fully booked right now" : "Times coming soon"}</span>
                   )}
                 </div>
               )}
@@ -121,7 +126,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
           {m.status === "pending" && (
             <div className="rounded-2xl bg-gold-soft p-5 text-[0.92rem] text-ink-2">
               <strong className="text-ink">{m.firstName} is new to Naija Mentors.</strong> Their DBS check and references are in progress.
-              You can still send a request, and we&rsquo;ll let you know once verification is complete.
+              {m.availability.length > 0 && " You can still send a request, and we’ll let you know once verification is complete."}
             </div>
           )}
 
@@ -242,6 +247,7 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
                 sessionLength: m.sessionLength,
                 specialities: m.specialities,
                 ageGroups: m.ageGroups,
+                hasTimes: m.availability.length > 0,
               }}
               slots={slots}
               viewer={user ? { role: user.role, mentees: user.mentees ?? [] } : null}
@@ -266,23 +272,25 @@ export default async function MentorPage({ params, searchParams }: PageProps<"/m
       </section>
 
       {/* Similar */}
-      <section className="border-t border-line bg-paper-2/50 py-16 sm:py-24">
-        <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
-          <div className="flex items-end justify-between gap-6">
-            <h2 className="font-display text-[clamp(2rem,3.6vw,3rem)] leading-tight tracking-[-0.03em]">
-              More from the <em>village</em>
-            </h2>
-            <Link href="/mentors" className="hidden text-[0.92rem] font-semibold text-forest underline decoration-gold decoration-2 underline-offset-4 sm:block">
-              Browse everyone
-            </Link>
+      {similar.length > 0 && (
+        <section className="border-t border-line bg-paper-2/50 py-16 sm:py-24">
+          <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
+            <div className="flex items-end justify-between gap-6">
+              <h2 className="font-display text-[clamp(2rem,3.6vw,3rem)] leading-tight tracking-[-0.03em]">
+                More from the <em>village</em>
+              </h2>
+              <Link href="/mentors" className="hidden text-[0.92rem] font-semibold text-forest underline decoration-gold decoration-2 underline-offset-4 sm:block">
+                Browse everyone
+              </Link>
+            </div>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {similar.map((s) => (
+                <MentorCard key={s.id} m={toCard(s)} className="h-full" />
+              ))}
+            </div>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {similar.map((s) => (
-              <MentorCard key={s.id} m={toCard(s)} className="h-full" />
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

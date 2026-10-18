@@ -8,13 +8,12 @@
     "start": "next start",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db.ts migrate",
-    "db:seed": "tsx scripts/db.ts seed",
-    "db:setup": "tsx scripts/db.ts migrate && tsx scripts/db.ts seed",
     "db:reset": "tsx scripts/db.ts reset",
     "db:create-admin": "tsx scripts/db.ts create-admin",
     "db:studio": "drizzle-kit studio",
+    "mentors:sync": "tsx scripts/db.ts sync",
+    "mentors:invite": "tsx scripts/db.ts invite",
     "email:digest": "tsx scripts/db.ts digest",
-    "reset": "tsx scripts/db.ts reset",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

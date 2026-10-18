@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Clock, Loader2, Sparkles, Users, Video } from "lucide-react";
-import { demoSignIn, requestSession, type FormState } from "@/app/actions";
+import { requestSession, type FormState } from "@/app/actions";
 import { buttonClasses } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { ageSpan, canBook, MENTEE_AGES } from "@/lib/mentees";
@@ -11,7 +11,17 @@ import { fmtDateLong, fmtDayNum, fmtMonth, fmtTime, fmtWeekday, type Slot } from
 import type { Mentee, Role } from "@/lib/types";
 
 type Props = {
-  mentor: { id: string; slug: string; firstName: string; displayName: string; sessionLength: number; specialities: string[]; ageGroups: string[] };
+  mentor: {
+    id: string;
+    slug: string;
+    firstName: string;
+    displayName: string;
+    sessionLength: number;
+    specialities: string[];
+    ageGroups: string[];
+    /** False until the mentor has added any weekly times. */
+    hasTimes: boolean;
+  };
   slots: Slot[];
   /** mentees: a parent's children, or an adult mentee's own details. */
   viewer: { role: Role; mentees: Mentee[] } | null;
@@ -38,10 +48,22 @@ export function BookingPanel({ mentor, slots, viewer, initialSlot }: Props) {
     return (
       <PanelShell mentor={mentor}>
         <div className="rounded-2xl bg-paper-2 p-6 text-center">
-          <p className="font-display text-xl">Fully booked for now</p>
-          <p className="mt-2 text-[0.9rem] text-ink-2">
-            {mentor.firstName} has no open times in the next few weeks. Check back soon, or explore similar mentors below.
-          </p>
+          {mentor.hasTimes ? (
+            <>
+              <p className="font-display text-xl">Fully booked for now</p>
+              <p className="mt-2 text-[0.9rem] text-ink-2">
+                {mentor.firstName} has no open times in the next few weeks. Check back soon, or explore similar mentors below.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-display text-xl">Times coming soon</p>
+              <p className="mt-2 text-[0.9rem] text-ink-2">
+                {mentor.firstName} is still setting up and hasn&rsquo;t added the times they&rsquo;re free yet. Check back soon, or
+                explore other mentors below.
+              </p>
+            </>
+          )}
         </div>
       </PanelShell>
     );
@@ -356,17 +378,6 @@ function SignInPrompt({ mentor, start, onBack }: { mentor: Props["mentor"]; star
         >
           I already have an account
         </Link>
-        <div className="flex items-center justify-center gap-1.5 text-[0.82rem] text-ink-3">
-          Just exploring? Try a demo
-          {(["mentee", "parent"] as const).map((who, i) => (
-            <form key={who} action={demoSignIn} className="contents">
-              <input type="hidden" name="who" value={who} />
-              <input type="hidden" name="next" value={next} />
-              {i > 0 && <span aria-hidden>·</span>}
-              <button className="font-semibold text-forest underline decoration-gold decoration-2 underline-offset-4 hover:text-forest-3">{who}</button>
-            </form>
-          ))}
-        </div>
       </div>
     </div>
   );

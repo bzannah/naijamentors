@@ -6,16 +6,17 @@ import { and, eq, gt, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { endSession, findUserByEmail, getCurrentUser, homeFor, startSession } from "@/lib/auth";
+import { isPlaceholderEmail } from "@/lib/accounts";
+import { endSession, findUserByEmail, getCurrentUser, homeFor, SETUP_PATH, startSession } from "@/lib/auth";
 import { getDb, isUniqueViolation, newId } from "@/lib/db";
 import { fromMentor } from "@/lib/db/mappers";
 import { conversations, mentors, messages, sessions, users } from "@/lib/db/schema";
 import { FIELDS } from "@/lib/fields";
 import { notifySessionCancelled, notifySessionRequested, notifySessionResponded } from "@/lib/notifications";
 import { canBook, MENTEE_AGES, schoolYearForAge, STAGES } from "@/lib/mentees";
+import { meetingUrl } from "@/lib/meeting";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { accessibleConversation, getMentorById, slotsFor } from "@/lib/queries";
-import { DEMO_MENTEE_EMAIL, DEMO_MENTOR_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
 import type { FieldKey, Mentee, Mentor, WeeklySlot } from "@/lib/types";
 
 export type FormState = { error?: string; field?: string } | undefined;
@@ -37,21 +38,13 @@ export async function signIn(_: FormState, fd: FormData): Promise<FormState> {
   const password = str(fd, "password");
   const user = await findUserByEmail(email);
   if (!user || !verifyPassword(password, user.passwordHash)) {
-    return { error: "That email and password don't match. Try again, or use a demo account below." };
+    return { error: "That email and password don't match. Please try again." };
   }
   await startSession(user.id);
   refreshAll();
+  // A password issued by the team is only good for choosing their own.
+  if (user.temporaryPassword) redirect(SETUP_PATH);
   redirect(safeNext(str(fd, "next"), canBook(user.role) ? "/mentors" : homeFor(user.role)));
-}
-
-export async function demoSignIn(fd: FormData) {
-  const who = str(fd, "who");
-  const email = who === "mentor" ? DEMO_MENTOR_EMAIL : who === "mentee" ? DEMO_MENTEE_EMAIL : DEMO_PARENT_EMAIL;
-  const user = await findUserByEmail(email);
-  if (!user) redirect("/signin");
-  await startSession(user.id);
-  refreshAll();
-  redirect(safeNext(str(fd, "next"), "/dashboard"));
 }
 
 /** Mentees aged 18+ sign up for themselves; parents and guardians sign up for 11 to 17-year-olds. */
@@ -63,7 +56,7 @@ export async function signUp(_: FormState, fd: FormData): Promise<FormState> {
   const city = str(fd, "city");
 
   if (name.length < 2) return { error: "Please tell us your name.", field: "name" };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Please enter a valid email address.", field: "email" };
+  if (!/^\S+@\S+\.\S+$/.test(email) || isPlaceholderEmail(email)) return { error: "Please enter a valid email address.", field: "email" };
   if (password.length < 8) return { error: "Your password needs at least 8 characters.", field: "password" };
 
   let mentees: Mentee[] = [];
@@ -380,7 +373,7 @@ export async function applyAsMentor(_: FormState, fd: FormData): Promise<FormSta
   } catch {}
 
   if (!firstName || !lastName) return { error: "Please add your full name.", field: "firstName" };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Please enter a valid email address.", field: "email" };
+  if (!/^\S+@\S+\.\S+$/.test(email) || isPlaceholderEmail(email)) return { error: "Please enter a valid email address.", field: "email" };
   if (password.length < 8) return { error: "Choose a password with at least 8 characters.", field: "password" };
   if (!role || !org) return { error: "Tell mentees what you do and where.", field: "role" };
   if (!FIELDS.some((f) => f.key === field)) return { error: "Pick the field that best describes your work.", field: "field" };

@@ -9,7 +9,7 @@ import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { FIELDS } from "@/lib/fields";
 import { toCard } from "@/lib/present";
-import { listMentors, sessionStart, type MentorListing } from "@/lib/queries";
+import { listMentors, type MentorListing } from "@/lib/queries";
 
 const PROFESSIONS = [
   "Paediatricians",
@@ -31,60 +31,56 @@ const PROFESSIONS = [
 ];
 
 export default async function Home() {
-  const [all, demoSessionAt] = await Promise.all([listMentors(), sessionStart("s_tobi_1")]);
-  const mentors = all.filter((m) => m.status === "active");
-  const by = (slug: string) => mentors.find((m) => m.slug === slug)!;
+  // Verified mentors lead, then those whose checks are in progress. People with photos lead the pictures.
+  const mentors = [...(await listMentors())].sort((a, b) => Number(b.status === "active") - Number(a.status === "active"));
+  const pictured = [...mentors.filter((m) => m.photo), ...mentors.filter((m) => !m.photo)];
+  const fields = new Set(mentors.map((m) => m.field)).size;
 
   const stats = {
     mentors: mentors.length,
-    cities: new Set(mentors.map((m) => m.city)).size,
-    heritages: new Set(mentors.map((m) => m.heritage.split(" · ")[0].split("-")[0])).size,
+    allVerified: mentors.length > 0 && mentors.every((m) => m.status === "active"),
+    fields,
+    // "United Kingdom" stands in for a mentor who hasn't told us their city yet.
+    cities: new Set(mentors.map((m) => m.city).filter((c) => c !== "United Kingdom")).size,
   };
-
-  const featured = ["chiamaka-obi", "chukwuemeka-nnamdi", "ngozi-eze-williams", "ifeanyi-okafor", "zainab-yusuf", "tunde-adebayo", "adaeze-nwosu", "osaze-ehigiator"].map(by);
 
   return (
     <>
-      <Hero
-        feature={by("chiamaka-obi")}
-        left={by("chukwuemeka-nnamdi")}
-        right={by("kemi-oyelaran")}
-        faces={["tunde-adebayo", "zainab-yusuf", "ifeanyi-okafor", "adaeze-nwosu", "abubakar-sani"].map(by)}
-        stats={stats}
-        sessionAt={demoSessionAt}
-      />
+      <Hero mentors={pictured} stats={stats} />
 
       <Marquee />
 
-      <Untapped mentors={mentors.length} fields={new Set(mentors.map((m) => m.field)).size} />
+      <Untapped mentors={mentors.length} verified={stats.allVerified} fields={fields} />
 
-      <HowItWorks mentors={[by("chiamaka-obi"), by("abubakar-sani"), by("aisha-bello")]} />
+      <HowItWorks mentors={pictured.slice(0, 3)} />
 
       {/* Featured mentors */}
-      <section className="relative bg-paper-2/60 py-24 sm:py-32">
-        <AsoOke className="absolute top-0 opacity-90" />
-        <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
-          <Reveal className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-            <div>
-              <p className="eyebrow text-clay">Meet the village</p>
-              <h2 className="font-display mt-4 max-w-2xl text-[clamp(2.4rem,4.6vw,4rem)] leading-[1.02] tracking-[-0.035em] text-balance">
-                Real people. Real careers. <em>Our people.</em>
-              </h2>
-            </div>
-            <ButtonLink href="/mentors" variant="secondary" arrow>
-              See all {mentors.length} mentors
-            </ButtonLink>
-          </Reveal>
+      {mentors.length > 0 && (
+        <section className="relative bg-paper-2/60 py-24 sm:py-32">
+          <AsoOke className="absolute top-0 opacity-90" />
+          <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
+            <Reveal className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+              <div>
+                <p className="eyebrow text-clay">Meet the village</p>
+                <h2 className="font-display mt-4 max-w-2xl text-[clamp(2.4rem,4.6vw,4rem)] leading-[1.02] tracking-[-0.035em] text-balance">
+                  Real people. Real careers. <em>Our people.</em>
+                </h2>
+              </div>
+              <ButtonLink href="/mentors" variant="secondary" arrow>
+                See all {mentors.length} {mentors.length === 1 ? "mentor" : "mentors"}
+              </ButtonLink>
+            </Reveal>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((m, i) => (
-              <Reveal key={m.id} delay={(i % 4) * 90}>
-                <MentorCard m={toCard(m)} className="h-full" />
-              </Reveal>
-            ))}
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {pictured.slice(0, 8).map((m, i) => (
+                <Reveal key={m.id} delay={(i % 4) * 90}>
+                  <MentorCard m={toCard(m)} className="h-full" />
+                </Reveal>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Fields mentors={mentors} />
 
@@ -94,7 +90,7 @@ export default async function Home() {
 
       <Safety />
 
-      <MentorCta faces={[by("osasu-igbinedion"), by("olumide-bakare"), by("ekaette-effiong"), by("efe-okoro")]} />
+      <MentorCta faces={pictured.slice(0, 4)} />
     </>
   );
 }
@@ -119,7 +115,7 @@ function Marquee() {
   );
 }
 
-function Untapped({ mentors, fields }: { mentors: number; fields: number }) {
+function Untapped({ mentors, verified, fields }: { mentors: number; verified: boolean; fields: number }) {
   return (
     <section className="relative py-24 sm:py-36">
       <div className="mx-auto max-w-[1320px] px-5 sm:px-8">
@@ -141,7 +137,11 @@ function Untapped({ mentors, fields }: { mentors: number; fields: number }) {
               label: "people born in Nigeria live in England & Wales, before you count their British-born children.",
               note: "Census 2021, ONS",
             },
-            { big: String(mentors), label: `verified mentors already giving their time, across ${fields} career fields.`, note: "And growing every week" },
+            {
+              big: String(mentors),
+              label: `${verified ? "verified " : ""}${mentors === 1 ? "mentor" : "mentors"} already giving their time, across ${fields} career ${fields === 1 ? "field" : "fields"}.`,
+              note: "And growing every week",
+            },
             { big: "£0", label: "for mentees and families. Always. Mentors give their time as a gift to the community.", note: "No fees, no catches" },
             { big: "45", unit: "min", label: "is all it takes to change what a young person believes is possible for them.", note: "One session at a time" },
           ].map((s, i) => (
@@ -184,7 +184,7 @@ function Fields({ mentors }: { mentors: MentorListing[] }) {
                   <div className="relative flex items-start justify-between">
                     <div className="flex -space-x-2.5">
                       {people.slice(0, 3).map((m) => (
-                        <Avatar key={m.id} src={m.photo} name={m.firstName} size={36} className="ring-[2.5px] ring-card transition group-hover:ring-forest" />
+                        <Avatar key={m.id} src={m.photo} name={`${m.firstName} ${m.lastName}`} size={36} className="ring-[2.5px] ring-card transition group-hover:ring-forest" />
                       ))}
                     </div>
                     <span className="font-display text-[1.5rem] leading-none text-ink-4 italic transition group-hover:text-gold-2">
@@ -363,7 +363,7 @@ function MentorCta({ faces }: { faces: MentorListing[] }) {
           <div className="relative mx-auto grid w-full max-w-[420px] grid-cols-2 gap-4">
             {faces.map((m, i) => (
               <div key={m.id} className={i % 2 ? "translate-y-10" : ""}>
-                <Portrait src={m.photo} name={m.firstName} className="aspect-[3/4] w-full ring-4 ring-forest-2" sizes="220px" />
+                <Portrait src={m.photo} name={`${m.firstName} ${m.lastName}`} className="aspect-[3/4] w-full ring-4 ring-forest-2" sizes="220px" />
               </div>
             ))}
             <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full bg-paper px-4 py-2.5 text-[0.82rem] font-semibold text-forest shadow-lift">

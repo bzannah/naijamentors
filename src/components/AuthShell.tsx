@@ -3,10 +3,9 @@ import { AdirePattern } from "./Patterns";
 import { Portrait } from "./Portrait";
 
 export async function AuthShell({ children, quote }: { children: React.ReactNode; quote?: { text: string; by: string } }) {
-  const mentors = (await listMentors()).filter((m) => m.photo && m.status === "active");
-  const pick = ["osasu-igbinedion", "tunde-adebayo", "zainab-yusuf", "ifeanyi-okafor", "adaeze-nwosu", "terver-agber"]
-    .map((s) => mentors.find((m) => m.slug === s))
-    .filter((m): m is NonNullable<typeof m> => Boolean(m));
+  // Up to six mentors, people with photos first.
+  const mentors = await listMentors();
+  const pick = [...mentors.filter((m) => m.photo), ...mentors.filter((m) => !m.photo)].slice(0, 6);
 
   return (
     <div className="grid flex-1 lg:grid-cols-[1fr_1fr]">
@@ -20,7 +19,7 @@ export async function AuthShell({ children, quote }: { children: React.ReactNode
             {pick.map((m, i) => (
               <div key={m.id} className={i % 3 === 1 ? "translate-y-12" : ""}>
                 <div className={i % 2 ? "animate-float-slow" : "animate-float"} style={{ animationDelay: `${i * 0.7}s` }}>
-                  <Portrait src={m.photo} name={m.firstName} className="aspect-[3/4] w-full ring-4 ring-forest-2" sizes="180px" />
+                  <Portrait src={m.photo} name={`${m.firstName} ${m.lastName}`} className="aspect-[3/4] w-full ring-4 ring-forest-2" sizes="180px" />
                 </div>
               </div>
             ))}

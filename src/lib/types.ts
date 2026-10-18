@@ -61,6 +61,8 @@ export type User = {
   name: string;
   email: string;
   passwordHash: string;
+  /** The password was issued by the team; the person must choose their own (and their real email) on next sign-in. */
+  temporaryPassword?: boolean;
   createdAt: string;
   mentorId?: string;
   city?: string;

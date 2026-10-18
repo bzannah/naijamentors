@@ -3,13 +3,16 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { issueTemporaryPassword, signInMessage } from "@/lib/accounts";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { mentors } from "@/lib/db/schema";
+import { mentors, users } from "@/lib/db/schema";
+import { appUrl } from "@/lib/env";
 import { notifyMentorApproved } from "@/lib/notifications";
 
 export type Check = "dbs" | "id" | "references";
 export type AdminResult = { ok: boolean; error?: string };
+export type SignInDetails = { email: string; password: string; message: string };
 
 const patchFor = (check: Check, on: boolean) =>
   check === "dbs" ? { verifiedDbs: on } : check === "id" ? { verifiedId: on } : { verifiedReferences: on };
@@ -71,4 +74,32 @@ export async function returnToReview(mentorId: string): Promise<AdminResult> {
     .returning({ id: mentors.id });
   refresh();
   return { ok: updated.length > 0 };
+}
+
+/**
+ * Issue a mentor a new temporary password and return what to send them. Used for mentors the team set up
+ * (who are still on a placeholder email) and to let anyone back in who has lost their password.
+ */
+export async function issueSignIn(mentorId: string): Promise<AdminResult & { details?: SignInDetails }> {
+  if (!(await isAdmin())) return { ok: false, error: "Only the Naija Mentors team can do that." };
+  const db = await getDb();
+  const [row] = await db
+    .select({ userId: users.id, email: users.email, slug: mentors.slug, honorific: mentors.honorific, firstName: mentors.firstName })
+    .from(mentors)
+    .innerJoin(users, eq(users.id, mentors.userId))
+    .where(eq(mentors.id, mentorId))
+    .limit(1);
+  if (!row) return { ok: false, error: "We couldn't find that mentor." };
+  const password = await issueTemporaryPassword(db, row.userId);
+  if (!password) return { ok: false, error: "That didn't save. Please try again." };
+  refresh();
+  const greetingName = row.honorific ? `${row.honorific} ${row.firstName}` : row.firstName;
+  return {
+    ok: true,
+    details: {
+      email: row.email,
+      password,
+      message: signInMessage({ greetingName, email: row.email, password, appUrl: appUrl(), profilePath: `/mentors/${row.slug}` }),
+    },
+  };
 }

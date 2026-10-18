@@ -13,36 +13,33 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Naija Mentors runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads 24 sample mentors and a few conversations. Emails are printed to the terminal instead of sent.
+Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Naija Mentors runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads the [mentor roster](#adding-mentors). Emails are printed to the terminal instead of sent.
 
 To use a real Postgres server instead (recommended once you're working on data or queries):
 
 ```bash
 createdb naijamentors                              # or Docker, Neon, Supabase…
 echo 'DATABASE_URL=postgres://localhost:5432/naijamentors' >> .env.local
-npm run db:setup                                   # apply migrations and load the demo data
+npm run db:migrate                                 # apply migrations and load the mentor roster
 npm run dev
 ```
 
-### Demo accounts
+### Signing in locally
 
-The sign-in page has one-click buttons for the mentee, parent and mentor demos (each one appears once its account exists). Every demo account uses the password `village-demo`.
+There is no demo data: the database holds real mentors only. To try things out:
 
-| Role | Email | What you'll see |
-| --- | --- | --- |
-| Mentee (18+) | `bukky@naijamentors.demo` | Bukola, 23, a recent graduate. A confirmed session with Tunde and a pending request with Temi |
-| Parent | `funmi@naijamentors.demo` | Mum of Tobi (15) and David (13). One confirmed session with Dr. Chiamaka, one pending request with Tunde |
-| Mentor | `chiamaka@mentor.naijamentors.demo` | Pending requests from Somto's dad and from Kunle, a medical student, plus an upcoming session and a past one |
-| Any mentor | `<firstname>@mentor.naijamentors.demo` | e.g. `tunde@mentor.naijamentors.demo` |
-| Admin | `admin@naijamentors.demo` | The verification area at `/admin` |
+```bash
+ADMIN_PASSWORD=choose-one npm run db:create-admin -- you@example.com "Your Name"   # the admin area at /admin
+npm run mentors:invite -- terry-osayawe                                           # sign in as a mentor
+```
 
-To start the demo over (all requests, messages and new accounts are wiped):
+Mentees and parents can sign up at `/signup` as usual. To start over (every account, request and message is wiped, then the roster is loaded again):
 
 ```bash
 npm run db:reset
 ```
 
-With the embedded database, stop `npm run dev` before running any `db:*` command: only one process can open it at a time.
+With the embedded database, stop `npm run dev` before running any `db:*` or `mentors:*` command: only one process can open it at a time.
 
 ## Configuration
 
@@ -75,15 +72,29 @@ The connection is chosen by `DATABASE_URL` (`src/lib/db/index.ts`): `postgres://
 
 | Command | What it does |
 | --- | --- |
-| `npm run db:migrate` | Apply pending migrations from `drizzle/`. Run this on every deploy |
-| `npm run db:seed` | Load the demo data into an empty database |
-| `npm run db:setup` | `db:migrate` then `db:seed` |
-| `npm run db:reset` | Wipe every table and load the demo data again. **Never run it against production** |
+| `npm run db:migrate` | Apply pending migrations from `drizzle/`, then sync the [mentor roster](#adding-mentors). Run this on every deploy |
+| `npm run mentors:sync` | Sync the mentor roster on its own |
+| `npm run mentors:invite -- [slug…]` | Issue temporary passwords and print the message to send each mentor. With no slugs: every roster mentor still on a placeholder email |
+| `npm run db:reset` | Wipe every table and load the roster again. Only runs on the embedded database unless you add `-- --force`. **Never run it against production** |
 | `npm run db:create-admin -- <email> [name]` | Create an admin account. Uses `ADMIN_PASSWORD` if set, otherwise prints a generated password |
 | `npm run db:generate` | After editing `schema.ts`, write a new migration to `drizzle/`. Commit it with the schema change |
 | `npm run db:studio` | Browse the data in Drizzle Studio (needs a `postgres://` URL) |
 
-The demo data comes from `src/lib/seed.ts` (`buildSeed()` builds it, `seedDatabase()` writes it) and the fictional profiles in `src/data/mentors.ts`.
+Earlier versions shipped fictional demo accounts on `…@naijamentors.demo` addresses. Migration `0002_remove-demo-data` deletes them, with their mentor profiles, conversations, sessions and messages, the next time `db:migrate` runs. Real accounts are untouched.
+
+## Adding mentors
+
+Real mentors are added by the team and handed over to them. The mechanism works the same for every new batch:
+
+1. **Add them to the roster.** One file per mentor in `src/data/mentors/` (copy an existing one; `RosterMentor` in `src/lib/roster.ts` documents every field), listed in `src/data/mentors/index.ts`. Keep the details to what their public profiles say, and list those pages in `sources`. If you have a photo, save it as `public/mentors/<slug>.jpg` and set `photo`.
+2. **Deploy.** `npm run db:migrate` syncs the roster: each new mentor gets a profile (marked *verification in progress*, with no bookable times yet) and a sign-in account on a placeholder email, `<slug>@invite.naijamentors.com`. Nothing is ever sent to placeholder addresses.
+3. **Send them their sign-in details.** On `/admin`, press **Create sign-in details** on their card. It issues a temporary password and shows a ready-to-paste message with the email, password and links. (Or run `npm run mentors:invite`, which prints the same message for everyone still on a placeholder.) The password is shown once; issuing new details makes the old ones stop working.
+4. **They take over.** Signing in with a temporary password leads straight to `/account/setup`, where they choose their own email and password. They then land on their dashboard, add the times they're free, and can edit everything on their profile at `/account/profile`.
+5. **Verify them** on `/admin` once their DBS, identity and references are done, as for any mentor.
+
+Until a mentor swaps the placeholder for their own email, their profile follows the roster file, so corrections there go live on the next deploy. Once they've signed in, the profile is theirs and the sync leaves it alone, apart from the photo, which the team keeps managing in the roster. The sync never deletes anyone.
+
+The same temporary-password step is how the team lets anyone back in: **Reset password** on `/admin` (or `npm run mentors:invite -- <slug>`) issues a new one, and the mentor chooses their own on next sign-in. Everyone can change their email and password at `/account`.
 
 ## Email
 
@@ -128,10 +139,9 @@ npm run db:create-admin -- safeguarding@naijamentors.com "Naija Mentors Team"
 ## Deploying
 
 1. Create a Postgres database and set `DATABASE_URL`, `SESSION_SECRET`, `APP_URL`, `SAFEGUARDING_EMAIL`, `RESEND_API_KEY`, `EMAIL_FROM` and `CRON_SECRET`.
-2. `npm run build`, then `npm run db:migrate` as a release step before `npm start`.
-3. `npm run db:create-admin -- <email> <name>` once.
+2. `npm run build`, then `npm run db:migrate` as a release step before `npm start`. It also brings in any new mentors from the roster.
+3. `npm run db:create-admin -- <email> <name>` once. (The old demo admin is removed with the rest of the demo data.)
 4. Schedule the message digest (see [Email](#email)).
-5. Don't run `db:seed` in production unless you want the demo accounts there.
 
 ## What's in it
 
@@ -148,7 +158,10 @@ npm run db:create-admin -- safeguarding@naijamentors.com "Naija Mentors Team"
 | The guide | `/guide` | Principles, expectations for mentors / mentees / parents, first-session agenda, safeguarding, the pledge |
 | Brand | `/brand` | The logo story, logo family, colour, type, voice and downloadable assets |
 | Become a mentor | `/become-a-mentor` | Four-step application with photo upload; creates a live profile marked "verification in progress" |
-| Admin | `/admin` | Verification checks, approve and publish, send a mentor back for review |
+| Admin | `/admin` | Verification checks, approve and publish, send a mentor back for review, issue sign-in details |
+| Account setup | `/account/setup` | After signing in with a temporary password: choose your own email (if you were set up with a placeholder) and password |
+| Account settings | `/account` | Change your email or password |
+| Edit profile | `/account/profile` | Mentors edit everything on their public profile except the photo |
 | Message digest | `/api/cron/message-digest` | Scheduled job that emails unread-message digests |
 | Auth | `/signin`, `/signup` | Sign-up as a mentee (18 to 30, with age and stage) or a parent (with optional child details); signed, httpOnly session cookie |
 
@@ -173,16 +186,19 @@ The mark is one continuous line that climbs (a mentor), reaches back down and ri
 
 ```
 drizzle/          SQL migrations (generated by drizzle-kit, committed)
-scripts/db.ts     migrate, seed, reset, create-admin, digest
+scripts/db.ts     migrate, sync, invite, reset, create-admin, digest
+public/mentors/   mentor photos added by the team
 src/
-  app/            routes, server actions (actions.ts), admin area
+  app/            routes, server actions (actions.ts), admin area, account pages
   components/     header, footer, portraits, patterns, mentor card, UI kit
-  data/mentors.ts sample mentor profiles
+  data/mentors/   the mentor roster, one file per mentor
   lib/
     db/           schema, connection, row mappers
     email/        mailer and email layout
     env.ts        every environment variable in one place
-    notifications.ts, queries.ts, auth.ts, seed.ts, time.ts, fields.ts
+    roster.ts     syncs the roster into the database
+    accounts.ts   placeholder emails and temporary passwords
+    notifications.ts, queries.ts, auth.ts, time.ts, fields.ts
 ```
 
 ## Before going live
@@ -193,5 +209,6 @@ The data, email, verification and configuration pieces are production-ready. Sti
 - **Pending mentors can already receive requests**, as in the prototype. Decide whether unverified mentors should be hidden or unbookable until approved
 - A dedicated video provider (Daily, Whereby or similar) instead of public Jitsi rooms
 - A real safeguarding inbox in `SAFEGUARDING_EMAIL` and a named safeguarding lead
-- Password reset, email verification and rate limiting on sign-in
-- Real mentor photos: the sample portraits are free-licence Unsplash images, and the people and credentials in `src/data/mentors.ts` are fictional
+- Email verification and rate limiting on sign-in
+- Mentor photos: profiles without one show a monogram. Add photos to `public/mentors/` and the roster (see [Adding mentors](#adding-mentors))
+- Self-service password reset by email. Until then the team issues temporary passwords from `/admin`

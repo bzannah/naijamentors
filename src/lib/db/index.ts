@@ -11,7 +11,7 @@ import * as schema from "./schema";
   DATABASE_URL=postgres://…   a real Postgres server (production, or a local one).
   DATABASE_URL=pglite://dir   an embedded Postgres (PGlite) stored on disk. This is the default in
                               development, so `npm run dev` works without installing anything. The
-                              embedded database migrates and seeds itself the first time it opens.
+                              embedded database migrates itself and loads the mentor roster when it opens.
 */
 
 export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
@@ -39,9 +39,9 @@ async function connect(): Promise<Handle> {
     const db = drizzle({ client, schema });
     await migrate(db, { migrationsFolder: MIGRATIONS_DIR });
     const handle: Handle = { db: db as unknown as Database, close: () => client.close(), embedded: true };
-    // Fresh embedded database: fill it with the demo data so the app is explorable straight away.
-    const { seedDatabase } = await import("../seed");
-    await seedDatabase(handle.db, { onlyIfEmpty: true });
+    // Same as a deploy's `npm run db:migrate`: bring in any mentors added to the roster.
+    const { syncRoster } = await import("../roster");
+    await syncRoster(handle.db);
     return handle;
   }
 

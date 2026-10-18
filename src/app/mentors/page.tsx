@@ -49,8 +49,9 @@ export default async function MentorsPage({ searchParams }: PageProps<"/mentors"
             Find the mentor who&rsquo;s <em className="text-forest-3">walked the road.</em>
           </h1>
           <p className="animate-fade-up mt-5 max-w-xl text-[1.08rem] leading-relaxed text-ink-2" style={{ animationDelay: "100ms" }}>
-            {mentors.length} accomplished British-Nigerians, every one verified and ready to give their time. Search by dream
-            career, language or city.
+            {mentors.length} accomplished British-Nigerians
+            {mentors.length > 0 && mentors.every((m) => m.status === "active") ? ", every one verified and" : ""} ready to give their
+            time. Search by dream career, language or city.
           </p>
         </div>
       </section>

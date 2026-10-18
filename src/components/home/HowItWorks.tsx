@@ -3,8 +3,9 @@ import { Avatar, Portrait } from "@/components/Portrait";
 import { Reveal } from "@/components/Reveal";
 import type { MentorListing } from "@/lib/queries";
 
+/** Up to three mentors illustrate the steps. */
 export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
-  const [a, b, c] = mentors;
+  const [a] = mentors;
   const steps = [
     {
       n: "01",
@@ -13,15 +14,15 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
       visual: (
         <div className="space-y-3">
           <div className="flex items-center gap-2.5 rounded-full bg-card px-4 py-3 text-[0.85rem] text-ink-3 shadow-soft ring-1 ring-line">
-            <Search className="h-4 w-4" /> Medicine in Manchester…
+            <Search className="h-4 w-4" /> A career, a city or a language…
           </div>
-          {[a, b, c].map((m, i) => (
+          {mentors.map((m, i) => (
             <div
               key={m.id}
               className="flex items-center gap-3 rounded-2xl bg-card p-2.5 pr-4 shadow-soft ring-1 ring-line"
               style={{ marginLeft: i * 14 }}
             >
-              <Avatar src={m.photo} name={m.firstName} size={38} />
+              <Avatar src={m.photo} name={`${m.firstName} ${m.lastName}`} size={38} />
               <div className="min-w-0">
                 <p className="truncate text-[0.85rem] font-semibold">
                   {m.honorific} {m.firstName} {m.lastName}
@@ -75,15 +76,15 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
         <div className="relative overflow-hidden rounded-3xl bg-indigo p-3 shadow-soft">
           <div className="grid grid-cols-2 gap-2">
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
-              <Portrait src={a.photo} name={a.firstName} shape="none" className="absolute inset-0" sizes="200px" />
+              <Portrait src={a?.photo} name={a ? `${a.firstName} ${a.lastName}` : "Your mentor"} shape="none" className="absolute inset-0" sizes="200px" />
               <span className="absolute bottom-2 left-2 rounded-full bg-black/45 px-2 py-0.5 text-[0.65rem] font-semibold text-white">
-                {a.honorific} {a.firstName}
+                {a ? `${a.honorific ? a.honorific + " " : ""}${a.firstName}` : "Your mentor"}
               </span>
             </div>
             <div className="relative flex aspect-[4/5] items-center justify-center rounded-2xl bg-gradient-to-br from-clay to-gold">
-              <span className="font-display text-4xl text-paper italic">T</span>
+              <span className="font-display text-4xl text-paper italic">Y</span>
               <span className="absolute bottom-2 left-2 rounded-full bg-black/35 px-2 py-0.5 text-[0.65rem] font-semibold text-white">
-                Tobi, 15
+                You
               </span>
             </div>
           </div>
@@ -118,7 +119,7 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
 
         <div className="mt-16 grid gap-5 lg:grid-cols-3">
           {steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 120}>
+            <Reveal key={s.n} delay={i * 120} className="min-w-0">
               <div className="group flex h-full flex-col rounded-[32px] bg-paper-2/70 p-7 ring-1 ring-line transition duration-500 hover:bg-paper-2 sm:p-8">
                 <div className="flex items-baseline justify-between">
                   <span className="font-display text-[3.2rem] leading-none text-gold italic">{s.n}</span>
@@ -127,7 +128,7 @@ export function HowItWorks({ mentors }: { mentors: MentorListing[] }) {
                 <h3 className="font-display mt-6 text-[1.75rem] leading-tight tracking-[-0.02em]">{s.title}</h3>
                 <p className="mt-3 text-[0.98rem] leading-relaxed text-ink-2">{s.body}</p>
                 <div className="mt-8 flex flex-1 items-end">
-                  <div className="w-full transition duration-700 ease-[var(--ease-out-expo)] group-hover:-translate-y-1">{s.visual}</div>
+                  <div className="w-full min-w-0 transition duration-700 ease-[var(--ease-out-expo)] group-hover:-translate-y-1">{s.visual}</div>
                 </div>
               </div>
             </Reveal>

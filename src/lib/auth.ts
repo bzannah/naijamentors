@@ -72,9 +72,13 @@ export function homeFor(role: Role) {
   return role === "admin" ? "/admin" : "/dashboard";
 }
 
+/** Where someone signed in with a password the team issued chooses their own email and password. */
+export const SETUP_PATH = "/account/setup";
+
 export async function requireUser(role?: Role, next?: string): Promise<SafeUser> {
   const user = await getCurrentUser();
   if (!user) redirect(`/signin${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+  if (user.temporaryPassword) redirect(SETUP_PATH);
   if (role && user.role !== role) redirect(homeFor(user.role));
   return user;
 }

@@ -23,3 +23,22 @@ export const FIELDS: Field[] = [
 export const FIELD_MAP = Object.fromEntries(FIELDS.map((f) => [f.key, f])) as Record<FieldKey, Field>;
 
 export const AGE_GROUPS = ["11–13", "14–16", "17–18", "19–24", "25–30"];
+
+/** Where a mentor is based, for the directory's region filter. */
+export const REGIONS = [
+  "London",
+  "South East",
+  "South West",
+  "East of England",
+  "East Midlands",
+  "West Midlands",
+  "Yorkshire and the Humber",
+  "North West",
+  "North East",
+  "Wales",
+  "Scotland",
+  "Northern Ireland",
+  "Outside the UK",
+];
+
+export const HONORIFICS = ["Dr.", "Prof.", "Engr.", "Barr."];

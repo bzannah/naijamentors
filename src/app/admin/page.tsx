@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BadgeCheck, ClipboardCheck, Hourglass, ShieldCheck, Users } from "lucide-react";
 import { AdirePattern } from "@/components/Patterns";
+import { isPlaceholderEmail } from "@/lib/accounts";
 import { requireUser } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { FIELD_MAP } from "@/lib/fields";
@@ -20,6 +21,8 @@ function toReview(m: MentorReview, now: number): ReviewMentor {
     org: m.org,
     city: m.city,
     email: m.email,
+    placeholder: isPlaceholderEmail(m.email),
+    temporaryPassword: m.temporaryPassword,
     field: FIELD_MAP[m.field]?.label ?? m.field,
     bio: m.bio,
     photo: m.photo,
@@ -38,6 +41,7 @@ export default async function AdminPage() {
   const pending = all.filter((m) => m.status === "pending");
   const live = all.filter((m) => m.status === "active");
   const outstanding = pending.reduce((n, m) => n + [m.verified.dbs, m.verified.id, m.verified.references].filter((v) => !v).length, 0);
+  const notSignedIn = all.filter((m) => isPlaceholderEmail(m.email)).length;
 
   const stats = [
     { label: "Awaiting review", value: pending.length, icon: Hourglass, tone: pending.length ? "text-clay" : "text-ink" },
@@ -59,6 +63,8 @@ export default async function AdminPage() {
             {pending.length
               ? `${pending.length} ${pending.length === 1 ? "mentor is" : "mentors are"} waiting for their DBS, identity and reference checks.`
               : "Every mentor has been reviewed. The village is in safe hands."}
+            {notSignedIn > 0 &&
+              ` ${notSignedIn} ${notSignedIn === 1 ? "mentor hasn't" : "mentors haven't"} signed in yet: create their sign-in details below and send them over.`}
           </p>
         </div>
       </section>
