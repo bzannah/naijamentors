@@ -6,14 +6,11 @@ import { demoSignIn, signIn, type FormState } from "@/app/actions";
 import { Avatar } from "@/components/Portrait";
 import { buttonClasses } from "@/components/ui/Button";
 
-const CHIAMAKA = "https://images.unsplash.com/photo-1678695972687-033fa0bdbac9";
-
-export type Demo = "mentee" | "parent" | "mentor";
+export type Demo = "mentee" | "parent";
 
 const DEMOS: Record<Demo, { title: string; sub: string; initials: string; photo?: string }> = {
   mentee: { title: "As a mentee", sub: "Bukola, 23, recent graduate", initials: "Bukola Ajayi" },
   parent: { title: "As a parent", sub: "Funmi, mum of Tobi & David", initials: "Funmilayo Adeyemi" },
-  mentor: { title: "As a mentor", sub: "Dr. Chiamaka Obi", initials: "Chiamaka Obi", photo: CHIAMAKA },
 };
 
 export function SignInForm({ next, demos }: { next: string; demos: Demo[] }) {

@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 export default async function BecomeAMentor() {
   const mentors = await listMentors();
   const by = (slug: string) => mentors.find((m) => m.slug === slug)!;
-  const emeka = by("chukwuemeka-nnamdi");
-  const trio = [by("ebiere-tamuno"), emeka, by("aisha-bello")];
+  const voice = by("ibrahim-danjuma");
+  const trio = [by("alamin-ajayi"), voice, by("babagana-bakare")];
 
   return (
     <div>
@@ -69,9 +69,9 @@ export default async function BecomeAMentor() {
               </div>
             </div>
             <figure className="absolute right-0 bottom-[6%] w-[62%] rounded-[24px] bg-forest p-5 text-paper shadow-lift sm:right-[-4%]">
-              <blockquote className="font-display text-[1.2rem] leading-snug italic">&ldquo;{emeka.quote}&rdquo;</blockquote>
+              <blockquote className="font-display text-[1.2rem] leading-snug italic">&ldquo;{voice.quote}&rdquo;</blockquote>
               <figcaption className="mt-3 text-[0.8rem] text-paper/65">
-                Emeka · {emeka.role}
+                {voice.firstName} · {voice.role}
               </figcaption>
             </figure>
           </div>

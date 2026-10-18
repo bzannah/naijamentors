@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
 import { findUserByEmail, getCurrentUser } from "@/lib/auth";
-import { DEMO_MENTEE_EMAIL, DEMO_MENTOR_EMAIL, DEMO_PARENT_EMAIL } from "@/lib/seed";
+import { DEMO_MENTEE_EMAIL, DEMO_PARENT_EMAIL } from "@/lib/seed";
 import { SignInForm, type Demo } from "./SignInForm";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -14,7 +14,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/signin">)
   if (await getCurrentUser()) redirect(next || "/dashboard");
 
   // Only offer the demo accounts this database actually has (they come from `npm run db:seed`).
-  const demoEmails: Record<Demo, string> = { mentee: DEMO_MENTEE_EMAIL, parent: DEMO_PARENT_EMAIL, mentor: DEMO_MENTOR_EMAIL };
+  const demoEmails: Record<Demo, string> = { mentee: DEMO_MENTEE_EMAIL, parent: DEMO_PARENT_EMAIL };
   const demos = (
     await Promise.all(Object.entries(demoEmails).map(async ([who, email]) => ((await findUserByEmail(email)) ? (who as Demo) : null)))
   ).filter((d): d is Demo => d !== null);

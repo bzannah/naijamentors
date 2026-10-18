@@ -271,11 +271,6 @@ export async function sessionById(user: SafeUser, id: string): Promise<SessionVi
 }
 
 /** Start time of any session. The landing page uses the demo session to show a real countdown. */
-export async function sessionStart(id: string) {
-  const [row] = await (await getDb()).select({ start: sessions.start }).from(sessions).where(eq(sessions.id, id)).limit(1);
-  return row?.start;
-}
-
 /* ---------------- Admin ---------------- */
 
 export type MentorReview = Mentor & { email: string; sessionCount: number };

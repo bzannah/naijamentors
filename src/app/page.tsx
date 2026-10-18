@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Eye, Lock, MessageSquareHeart, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Eye, Lock, MessageSquareHeart, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Hero } from "@/components/home/Hero";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { MentorCard } from "@/components/MentorCard";
@@ -9,7 +9,7 @@ import { Reveal } from "@/components/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { FIELDS } from "@/lib/fields";
 import { toCard } from "@/lib/present";
-import { listMentors, sessionStart, type MentorListing } from "@/lib/queries";
+import { listMentors, type MentorListing } from "@/lib/queries";
 
 const PROFESSIONS = [
   "Paediatricians",
@@ -31,8 +31,7 @@ const PROFESSIONS = [
 ];
 
 export default async function Home() {
-  const [all, demoSessionAt] = await Promise.all([listMentors(), sessionStart("s_tobi_1")]);
-  const mentors = all.filter((m) => m.status === "active");
+  const mentors = (await listMentors()).filter((m) => m.status === "active");
   const by = (slug: string) => mentors.find((m) => m.slug === slug)!;
 
   const stats = {
@@ -41,24 +40,24 @@ export default async function Home() {
     heritages: new Set(mentors.map((m) => m.heritage.split(" · ")[0].split("-")[0])).size,
   };
 
-  const featured = ["chiamaka-obi", "chukwuemeka-nnamdi", "ngozi-eze-williams", "mujahid-okafor", "zainab-yusuf", "tunde-adebayo", "adaeze-nwosu", "osaze-ehigiator"].map(by);
+  const featured = ["bakari-sani", "ibrahim-danjuma", "terry-agber", "alamin-ajayi", "babagana-bakare", "mujahid-okafor", "umar-uzor"].map(by);
 
   return (
     <>
       <Hero
-        feature={by("chiamaka-obi")}
-        left={by("chukwuemeka-nnamdi")}
-        right={by("kemi-oyelaran")}
-        faces={["tunde-adebayo", "zainab-yusuf", "mujahid-okafor", "adaeze-nwosu", "bakari-sani"].map(by)}
+        feature={by("bakari-sani")}
+        left={by("ibrahim-danjuma")}
+        right={by("terry-agber")}
+        faces={["alamin-ajayi", "babagana-bakare", "mujahid-okafor", "umar-uzor", "ibrahim-danjuma"].map(by)}
+        fields={new Set(mentors.map((m) => m.field))}
         stats={stats}
-        sessionAt={demoSessionAt}
       />
 
       <Marquee />
 
       <Untapped mentors={mentors.length} fields={new Set(mentors.map((m) => m.field)).size} />
 
-      <HowItWorks mentors={[by("chiamaka-obi"), by("bakari-sani"), by("aisha-bello")]} />
+      <HowItWorks mentors={[by("bakari-sani"), by("umar-uzor"), by("ibrahim-danjuma")]} />
 
       {/* Featured mentors */}
       <section className="relative bg-paper-2/60 py-24 sm:py-32">
@@ -82,6 +81,9 @@ export default async function Home() {
                 <MentorCard m={toCard(m)} className="h-full" />
               </Reveal>
             ))}
+            <Reveal delay={(featured.length % 4) * 90}>
+              <JoinCard />
+            </Reveal>
           </div>
         </div>
       </section>
@@ -94,8 +96,34 @@ export default async function Home() {
 
       <Safety />
 
-      <MentorCta faces={[by("osasu-igbinedion"), by("babagana-bakare"), by("ekaette-effiong"), by("efe-okoro")]} />
+      <MentorCta faces={[by("terry-agber"), by("alamin-ajayi"), by("umar-uzor"), by("babagana-bakare")]} />
     </>
+  );
+}
+
+/** Sits at the end of the featured grid: an open seat in the village. */
+function JoinCard() {
+  return (
+    <Link
+      href="/become-a-mentor"
+      className="group relative flex h-full min-h-[420px] flex-col justify-between overflow-hidden rounded-[30px] bg-forest p-8 text-paper ring-1 ring-forest transition-all duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1.5 hover:shadow-lift"
+    >
+      <AdirePattern className="text-gold opacity-[0.09] transition-opacity duration-500 group-hover:opacity-[0.14]" size={44} />
+      <p className="eyebrow relative flex items-center gap-2 text-gold-2">
+        <Sparkles className="h-4 w-4" /> Join the village
+      </p>
+      <div className="relative">
+        <h3 className="font-display text-[2.2rem] leading-[1.02] tracking-[-0.035em] text-balance">
+          Your story could be <em className="text-gold-2">next.</em>
+        </h3>
+        <p className="mt-4 text-[0.95rem] leading-relaxed text-paper/70">
+          Give 45 minutes a month to a young person who needs to see what&rsquo;s possible.
+        </p>
+        <span className="mt-7 inline-flex items-center gap-2 rounded-full bg-gold-2 px-5 py-3 text-[0.9rem] font-semibold text-ink transition-all group-hover:gap-3 group-hover:bg-gold-soft">
+          Become a mentor <ArrowRight className="h-4 w-4" />
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -177,16 +205,22 @@ function Fields({ mentors }: { mentors: MentorListing[] }) {
             return (
               <Reveal key={f.key} delay={(i % 5) * 70}>
                 <Link
-                  href={`/mentors?field=${f.key}`}
+                  href={people.length ? `/mentors?field=${f.key}` : "/become-a-mentor"}
                   className="group relative flex h-full min-h-[200px] flex-col justify-between overflow-hidden rounded-[26px] bg-card p-6 ring-1 ring-line transition-all duration-500 ease-[var(--ease-out-expo)] hover:-translate-y-1 hover:bg-forest hover:text-paper hover:shadow-lift"
                 >
                   <AdirePattern className="text-gold opacity-0 transition-opacity duration-500 group-hover:opacity-[0.12]" size={36} />
                   <div className="relative flex items-start justify-between">
-                    <div className="flex -space-x-2.5">
-                      {people.slice(0, 3).map((m) => (
-                        <Avatar key={m.id} src={m.photo} name={m.firstName} size={36} className="ring-[2.5px] ring-card transition group-hover:ring-forest" />
-                      ))}
-                    </div>
+                    {people.length ? (
+                      <div className="flex -space-x-2.5">
+                        {people.slice(0, 3).map((m) => (
+                          <Avatar key={m.id} src={m.photo} name={m.firstName} size={36} className="ring-[2.5px] ring-card transition group-hover:ring-forest" />
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="rounded-full bg-gold-soft px-3 py-1.5 text-[0.75rem] font-semibold text-clay transition group-hover:bg-paper/10 group-hover:text-gold-2">
+                        Mentors wanted
+                      </span>
+                    )}
                     <span className="font-display text-[1.5rem] leading-none text-ink-4 italic transition group-hover:text-gold-2">
                       {String(people.length).padStart(2, "0")}
                     </span>

@@ -4,7 +4,7 @@ import { Portrait } from "./Portrait";
 
 export async function AuthShell({ children, quote }: { children: React.ReactNode; quote?: { text: string; by: string } }) {
   const mentors = (await listMentors()).filter((m) => m.photo && m.status === "active");
-  const pick = ["osasu-igbinedion", "tunde-adebayo", "zainab-yusuf", "mujahid-okafor", "adaeze-nwosu", "terry-agber"]
+  const pick = ["terry-agber", "bakari-sani", "umar-uzor", "ibrahim-danjuma", "alamin-ajayi", "babagana-bakare"]
     .map((s) => mentors.find((m) => m.slug === s))
     .filter((m): m is NonNullable<typeof m> => Boolean(m));
 

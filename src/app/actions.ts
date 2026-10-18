@@ -15,7 +15,7 @@ import { notifySessionCancelled, notifySessionRequested, notifySessionResponded 
 import { canBook, MENTEE_AGES, schoolYearForAge, STAGES } from "@/lib/mentees";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { accessibleConversation, getMentorById, slotsFor } from "@/lib/queries";
-import { DEMO_MENTEE_EMAIL, DEMO_MENTOR_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
+import { DEMO_MENTEE_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
 import type { FieldKey, Mentee, Mentor, WeeklySlot } from "@/lib/types";
 
 export type FormState = { error?: string; field?: string } | undefined;
@@ -46,7 +46,7 @@ export async function signIn(_: FormState, fd: FormData): Promise<FormState> {
 
 export async function demoSignIn(fd: FormData) {
   const who = str(fd, "who");
-  const email = who === "mentor" ? DEMO_MENTOR_EMAIL : who === "mentee" ? DEMO_MENTEE_EMAIL : DEMO_PARENT_EMAIL;
+  const email = who === "mentee" ? DEMO_MENTEE_EMAIL : DEMO_PARENT_EMAIL;
   const user = await findUserByEmail(email);
   if (!user) redirect("/signin");
   await startSession(user.id);

@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Naija Mentors runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads 24 sample mentors and a few conversations. Emails are printed to the terminal instead of sent.
+Open http://localhost:3000. Nothing else is needed: without a `DATABASE_URL`, Naija Mentors runs an **embedded Postgres** ([PGlite](https://pglite.dev)) stored in `data/pglite/`. The first request creates it, applies the migrations and loads the mentors and a few demo accounts. Emails are printed to the terminal instead of sent.
 
 To use a real Postgres server instead (recommended once you're working on data or queries):
 
@@ -26,14 +26,12 @@ npm run dev
 
 ### Demo accounts
 
-The sign-in page has one-click buttons for the mentee, parent and mentor demos (each one appears once its account exists). Every demo account uses the password `village-demo`.
+The sign-in page has one-click buttons for the mentee and parent demos (each one appears once its account exists). Every demo account uses the password `village-demo`. The demo families start with empty inboxes: the seeded mentors are real people, so the seed doesn't invent conversations with them.
 
 | Role | Email | What you'll see |
 | --- | --- | --- |
-| Mentee (18+) | `bukky@naijamentors.demo` | Bukola, 23, a recent graduate. A confirmed session with Tunde and a pending request with Temi |
-| Parent | `funmi@naijamentors.demo` | Mum of Tobi (15) and David (13). One confirmed session with Dr. Chiamaka, one pending request with Tunde |
-| Mentor | `chiamaka@mentor.naijamentors.demo` | Pending requests from Somto's dad and from Kunle, a medical student, plus an upcoming session and a past one |
-| Any mentor | `<firstname>@mentor.naijamentors.demo` | e.g. `tunde@mentor.naijamentors.demo` |
+| Mentee (18+) | `bukky@naijamentors.demo` | Bukola, 23, a recent graduate |
+| Parent | `funmi@naijamentors.demo` | Mum of Tobi (15) and David (13) |
 | Admin | `admin@naijamentors.demo` | The verification area at `/admin` |
 
 To start the demo over (all requests, messages and new accounts are wiped):
@@ -83,7 +81,7 @@ The connection is chosen by `DATABASE_URL` (`src/lib/db/index.ts`): `postgres://
 | `npm run db:generate` | After editing `schema.ts`, write a new migration to `drizzle/`. Commit it with the schema change |
 | `npm run db:studio` | Browse the data in Drizzle Studio (needs a `postgres://` URL) |
 
-The demo data comes from `src/lib/seed.ts` (`buildSeed()` builds it, `seedDatabase()` writes it) and the fictional profiles in `src/data/mentors.ts`.
+The demo data comes from `src/lib/seed.ts` (`buildSeed()` builds it, `seedDatabase()` writes it) and the mentor profiles in `src/data/mentors.ts`.
 
 ## Email
 
@@ -194,4 +192,4 @@ The data, email, verification and configuration pieces are production-ready. Sti
 - A dedicated video provider (Daily, Whereby or similar) instead of public Jitsi rooms
 - A real safeguarding inbox in `SAFEGUARDING_EMAIL` and a named safeguarding lead
 - Password reset, email verification and rate limiting on sign-in
-- Real mentor photos: the sample portraits are free-licence Unsplash images, and the people and credentials in `src/data/mentors.ts` are fictional
+- Real mentor details: the seven mentors in `src/data/mentors.ts` have real first names and photos, but their surnames, roles, bios and credentials are still placeholders. Their seeded accounts also use the demo password, so give each one their own email and password before launch

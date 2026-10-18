@@ -5,19 +5,22 @@ import { SunRings } from "@/components/Patterns";
 import { FIELDS } from "@/lib/fields";
 import { fmtDateShort, fmtTime } from "@/lib/time";
 import type { MentorListing } from "@/lib/queries";
+import type { FieldKey } from "@/lib/types";
 
 type HeroProps = {
   feature: MentorListing;
   left: MentorListing;
   right: MentorListing;
   faces: MentorListing[];
+  /** Fields that have at least one mentor, so the quick links never lead to an empty search. */
+  fields: Set<FieldKey>;
   stats: { mentors: number; cities: number; heritages: number };
   sessionAt?: string | null;
 };
 
-const QUICK = ["medicine", "law", "tech", "engineering", "enterprise", "creative"] as const;
+const QUICK: FieldKey[] = ["medicine", "law", "tech", "engineering", "enterprise", "creative", "finance", "education", "public", "sport"];
 
-export function Hero({ feature, left, right, faces, stats, sessionAt = feature.nextSlot }: HeroProps) {
+export function Hero({ feature, left, right, faces, fields, stats, sessionAt = feature.nextSlot }: HeroProps) {
   return (
     <section className="grain relative overflow-hidden">
       {/* soft warm glow */}
@@ -74,7 +77,7 @@ export function Hero({ feature, left, right, faces, stats, sessionAt = feature.n
           </form>
 
           <div className="animate-fade-up mt-5 flex flex-wrap gap-2" style={{ animationDelay: "300ms" }}>
-            {QUICK.map((k) => {
+            {QUICK.filter((k) => fields.has(k)).slice(0, 6).map((k) => {
               const f = FIELDS.find((x) => x.key === k)!;
               return (
                 <Link
