@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "RAILPACK",
+    "buildCommand": "echo 'The digest runs from source with tsx, so it skips the Next.js build.'"
+  },
+  "deploy": {
+    "startCommand": "npm run email:digest",
+    "cronSchedule": "*/30 * * * *",
+    "restartPolicyType": "NEVER"
+  }
+}

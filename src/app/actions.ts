@@ -1,7 +1,5 @@
 "use server";
 
-import fs from "node:fs";
-import path from "node:path";
 import { and, eq, gt, inArray, like, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,6 +14,7 @@ import { canBook, MENTEE_AGES, schoolYearForAge, STAGES } from "@/lib/mentees";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { accessibleConversation, getMentorById, slotsFor } from "@/lib/queries";
 import { DEMO_MENTEE_EMAIL, DEMO_PARENT_EMAIL, meetingUrl } from "@/lib/seed";
+import { savePhoto } from "@/lib/uploads";
 import type { FieldKey, Mentee, Mentor, WeeklySlot } from "@/lib/types";
 
 export type FormState = { error?: string; field?: string } | undefined;
@@ -408,13 +407,8 @@ export async function applyAsMentor(_: FormState, fd: FormData): Promise<FormSta
   let photo: string | undefined;
   const file = fd.get("photo");
   if (file instanceof File && file.size > 0) {
-    if (!file.type.startsWith("image/")) return { error: "Your photo must be an image.", field: "photo" };
-    const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-    const dir = path.join(process.cwd(), "public", "uploads");
-    fs.mkdirSync(dir, { recursive: true });
-    const name = `${slug}-${mentorId.slice(-6)}.${ext}`;
-    fs.writeFileSync(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
-    photo = `/uploads/${name}`;
+    photo = (await savePhoto(file, `${slug}-${mentorId.slice(-6)}`)) ?? undefined;
+    if (!photo) return { error: "Your photo must be a JPG, PNG, WebP, GIF or AVIF image.", field: "photo" };
   }
 
   const now = new Date().toISOString();

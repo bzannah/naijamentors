@@ -55,7 +55,8 @@ All settings are environment variables. Copy `.env.example` to `.env.local` for 
 | `RESEND_API_KEY` | Recommended | Sends email through [Resend](https://resend.com). Without it emails are only logged |
 | `EMAIL_FROM` | With Resend | Sender, e.g. `Naija Mentors <hello@naijamentors.com>`. The domain must be verified in Resend |
 | `EMAIL_REPLY_TO` | Optional | Where replies to notification emails go |
-| `CRON_SECRET` | **Required** for the digest | Protects `/api/cron/message-digest` |
+| `UPLOADS_DIR` | **Required** | Where uploaded mentor photos are stored, served at `/uploads/…`. Must be persistent storage, e.g. `/data/uploads` on a Railway volume. Defaults to `data/uploads` in development |
+| `CRON_SECRET` | For the digest endpoint | Protects `/api/cron/message-digest`. Not needed if the digest runs as `npm run email:digest`, as it does on Railway |
 | `DATABASE_POOL_MAX` | Optional | Connections per server instance (default 10) |
 
 ## Database
@@ -103,13 +104,7 @@ The digest runs on a schedule. Call it every 15 to 60 minutes:
 curl -H "Authorization: Bearer $CRON_SECRET" https://naijamentors.com/api/cron/message-digest
 ```
 
-On Vercel, add a cron to `vercel.json` (Vercel sends the `CRON_SECRET` header for you):
-
-```json
-{ "crons": [{ "path": "/api/cron/message-digest", "schedule": "*/30 * * * *" }] }
-```
-
-Or run it from any scheduler with access to the database: `npm run email:digest`. It's safe to run as often as you like: each person is only emailed about messages newer than their last digest, and only text messages count (requests and status changes have their own emails).
+On Railway it runs as its own cron service every 30 minutes (see [Deploying](#deploying)). Or run it from any scheduler with access to the database: `npm run email:digest`. It's safe to run as often as you like: each person is only emailed about messages newer than their last digest, and only text messages count (requests and status changes have their own emails).
 
 ## Admin and mentor verification
 
@@ -125,11 +120,26 @@ npm run db:create-admin -- safeguarding@naijamentors.com "Naija Mentors Team"
 
 ## Deploying
 
-1. Create a Postgres database and set `DATABASE_URL`, `SESSION_SECRET`, `APP_URL`, `SAFEGUARDING_EMAIL`, `RESEND_API_KEY`, `EMAIL_FROM` and `CRON_SECRET`.
-2. `npm run build`, then `npm run db:migrate` as a release step before `npm start`.
-3. `npm run db:create-admin -- <email> <name>` once.
-4. Schedule the message digest (see [Email](#email)).
-5. Don't run `db:seed` in production unless you want the demo accounts there.
+The app is set up for [Railway](https://railway.com) as two services built from this repo:
+
+| Service | Config file | What it does |
+| --- | --- | --- |
+| `web` | `railway.json` | Builds with `next build`, runs `npm run db:migrate` before each release, then `npm start`. Won't start without a volume at `/data` |
+| `digest` | `railway.digest.json` | Skips the Next.js build and runs `npm run email:digest` every 30 minutes, then exits |
+
+One-time setup in the Railway dashboard:
+
+1. **New project → Deploy from GitHub repo**, pick this repo. Rename the service `web`. Under **Settings → Deploy → Regions**, choose the region closest to your database (EU West is closest to UK users).
+2. On `web`, **right-click → Attach volume** with mount path `/data`.
+3. In **Project Settings → Shared Variables**, add `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` and `SAFEGUARDING_EMAIL`. Then on `web`, open **Variables**, add every shared variable, and add `SESSION_SECRET` (`openssl rand -base64 48`) and `UPLOADS_DIR=/data/uploads`.
+4. On `web`, **Settings → Networking → Generate Domain** (or add `naijamentors.com` as a custom domain), and make sure `APP_URL` matches it.
+5. Add the digest: **New → GitHub Repo**, same repo, rename it `digest`. Under **Settings → Config-as-code**, set the file to `/railway.digest.json`. In its **Variables**, add the shared `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` and `SAFEGUARDING_EMAIL`.
+6. Deploy. Every push to the main branch redeploys both services. With a volume attached, each `web` redeploy has a few seconds of downtime.
+7. Create the first admin once: `npm run db:create-admin -- <email> <name>`, run locally against the production `DATABASE_URL` or with `railway run`.
+
+If uploads fail with a permission error, add `RAILWAY_RUN_UID=0` to `web`. Don't run `db:seed` or `db:reset` in production.
+
+Elsewhere: set the variables in the [Configuration](#configuration) table, run `npm run build`, then `npm run db:migrate` before each `npm start`, give `UPLOADS_DIR` persistent storage, and schedule the digest (see [Email](#email)).
 
 ## What's in it
 
@@ -187,7 +197,7 @@ src/
 
 The data, email, verification and configuration pieces are production-ready. Still to do before a public launch:
 
-- **Photo uploads** are written to `public/uploads` on the server's disk, which doesn't survive redeploys or work on serverless hosts. Move them to object storage (S3, R2, Vercel Blob)
+- **Photo uploads** live on one server's disk (`UPLOADS_DIR`, a Railway volume). That's fine for a single instance, but move them to object storage (Cloudflare R2, S3) before running more than one
 - **Pending mentors can already receive requests**, as in the prototype. Decide whether unverified mentors should be hidden or unbookable until approved
 - A dedicated video provider (Daily, Whereby or similar) instead of public Jitsi rooms
 - A real safeguarding inbox in `SAFEGUARDING_EMAIL` and a named safeguarding lead

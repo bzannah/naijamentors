@@ -47,6 +47,11 @@ export const email = {
   replyTo: () => value("EMAIL_REPLY_TO"),
 };
 
+/** Where uploaded mentor photos are stored (production). Point it at persistent storage, such as a Railway volume. */
+export function uploadsDir() {
+  return required("UPLOADS_DIR", "data/uploads");
+}
+
 /** Shared secret for scheduled jobs such as the message digest. */
 export function cronSecret() {
   return value("CRON_SECRET");

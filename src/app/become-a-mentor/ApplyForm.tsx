@@ -7,6 +7,7 @@ import { Arrow, buttonClasses } from "@/components/ui/Button";
 import { WeeklyPicker } from "@/components/WeeklyPicker";
 import { cn } from "@/lib/cn";
 import { AGE_GROUPS, FIELDS } from "@/lib/fields";
+import { PHOTO_ACCEPT } from "@/lib/photo-types";
 import type { WeeklySlot } from "@/lib/types";
 
 const STEPS = ["About you", "Your work", "Your story", "Availability"];
@@ -172,7 +173,7 @@ export function ApplyForm() {
               <input
                 type="file"
                 name="photo"
-                accept="image/*"
+                accept={PHOTO_ACCEPT}
                 className="sr-only"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
