@@ -44,3 +44,6 @@ next-env.d.ts
 # Village local data
 /data
 /public/uploads
+
+# Database credentials
+*credentials*.env
