@@ -124,13 +124,13 @@ The app is set up for [Railway](https://railway.com) as two services built from 
 
 | Service | Config file | What it does |
 | --- | --- | --- |
-| `web` | `railway.json` | Builds with `next build`, runs `npm run db:migrate` before each release, then `npm start`. Won't start without a volume at `/data` |
+| `web` | `railway.json` | Builds with `next build`, runs `npm run db:migrate` before each release, then `npm start`. Needs a volume at `/data`: without one the server won't start, so the deploy fails its healthcheck |
 | `digest` | `railway.digest.json` | Skips the Next.js build and runs `npm run email:digest` every 30 minutes, then exits |
 
 One-time setup in the Railway dashboard:
 
 1. **New project → Deploy from GitHub repo**, pick this repo. Rename the service `web`. Under **Settings → Deploy → Regions**, choose the region closest to your database (EU West is closest to UK users).
-2. On `web`, **right-click → Attach volume** with mount path `/data`.
+2. On `web`, **right-click → Attach volume** with mount path `/data`. Railway doesn't enforce `requiredMountPath`, so `src/instrumentation.ts` checks at startup that `UPLOADS_DIR` is on the volume.
 3. In **Project Settings → Shared Variables**, add `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` and `SAFEGUARDING_EMAIL`. Then on `web`, open **Variables**, add every shared variable, and add `SESSION_SECRET` (`openssl rand -base64 48`) and `UPLOADS_DIR=/data/uploads`.
 4. On `web`, **Settings → Networking → Generate Domain** (or add `naijamentors.com` as a custom domain), and make sure `APP_URL` matches it.
 5. Add the digest: **New → GitHub Repo**, same repo, rename it `digest`. Under **Settings → Config-as-code**, set the file to `/railway.digest.json`. In its **Variables**, add the shared `DATABASE_URL`, `APP_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` and `SAFEGUARDING_EMAIL`.
