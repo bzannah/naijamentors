@@ -16,6 +16,22 @@ function dir() {
   return path.resolve(/*turbopackIgnore: true*/ process.cwd(), uploadsDir());
 }
 
+/**
+  Says why photos saved now would be lost, or returns null. Railway wipes a container's disk on every deploy, so
+  there UPLOADS_DIR must be on the attached volume (Railway sets RAILWAY_VOLUME_MOUNT_PATH when one is attached).
+  Railway doesn't enforce requiredMountPath, so src/instrumentation.ts checks this at startup. Other hosts aren't checked.
+*/
+export function uploadsVolumeProblem() {
+  if (process.env.NODE_ENV !== "production" || !process.env.RAILWAY_ENVIRONMENT) return null;
+  const mount = process.env.RAILWAY_VOLUME_MOUNT_PATH?.trim();
+  if (!mount) return `No Railway volume is attached, so photos saved to ${dir()} would be lost on the next deploy. Attach one at /data.`;
+  const inside = path.relative(path.resolve(mount), dir());
+  if (inside.startsWith("..") || path.isAbsolute(inside)) {
+    return `UPLOADS_DIR (${dir()}) isn't on the Railway volume mounted at ${mount}, so photos would be lost on the next deploy.`;
+  }
+  return null;
+}
+
 /** Saves a photo as `<baseName>.<ext>` and returns its public path, or null if it isn't a supported image. */
 export async function savePhoto(file: File, baseName: string) {
   const ext = PHOTO_EXTENSIONS[file.type];
