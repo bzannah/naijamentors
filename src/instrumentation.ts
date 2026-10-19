@@ -7,8 +7,9 @@
   process npm signals, rather than a shell that would die without passing the signal on.
 
   If the uploads check throws, the server answers every request with a 500, so on Railway a deploy without the
-  uploads volume fails its healthcheck (/) and the previous deployment keeps serving, rather than saving mentor
-  photos to a disk the next deploy wipes.
+  uploads volume fails its healthcheck (/) rather than saving mentor photos to a disk the next deploy wipes. With
+  no volume, Railway keeps the previous deployment serving. With a volume attached but UPLOADS_DIR outside it, the
+  old one is already stopped, so the site is down until UPLOADS_DIR is fixed.
 */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
